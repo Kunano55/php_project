@@ -1,39 +1,89 @@
-const emailEl = document.getElementById("email");
-const passEl = document.getElementById("password");
-const msgEl = document.getElementById("msg");
+const loginEmailEl = document.getElementById("loginEmail");
+const loginPasswordEl = document.getElementById("loginPassword");
+const regNameEl = document.getElementById("regName");
+const regEmailEl = document.getElementById("regEmail");
+const regPasswordEl = document.getElementById("regPassword");
+const msgLoginEl = document.getElementById("msgLogin");
+const msgRegisterEl = document.getElementById("msgRegister");
 
-document.getElementById("btnLogin").onclick = login;
+document.getElementById("btnLogin").onclick = loginStudent;
 document.getElementById("btnLogout").onclick = logout;
+document.getElementById("btnRegister").onclick = registerStudent;
 
-(async function init(){
+(async function init() {
   const me = await apiGet("auth.php?action=me");
-  if (me && me.ok && me.data && me.data[0]) {
-    msgEl.textContent = `ล็อกอินอยู่: ${me.data[0].email} (${me.data[0].role})`;
+  const user = me && me.ok && me.data && me.data[0] ? me.data[0] : null;
+
+  if (!user) {
+    msgLoginEl.textContent = "สถานะ: ยังไม่ล็อกอิน";
+    return;
+  }
+
+  if ((user.role || "") === "student") {
+    msgLoginEl.textContent = `สถานะ: ล็อกอินนักศึกษาอยู่ (${user.email})`;
+  } else {
+    msgLoginEl.textContent = "สถานะ: เป็นแอดมิน กรุณาใช้หน้าเข้าสู่ระบบแอดมิน";
   }
 })();
 
-async function login(){
-  msgEl.textContent = "กำลังล็อกอิน...";
-  const email = emailEl.value.trim();
-  const password = passEl.value;
+async function loginStudent() {
+  msgLoginEl.textContent = "กำลังล็อกอิน...";
 
-  if(!email || !password){
-    msgEl.textContent = "กรอกอีเมลและรหัสผ่าน";
+  const email = loginEmailEl.value.trim();
+  const password = loginPasswordEl.value;
+  if (!email || !password) {
+    msgLoginEl.textContent = "กรอกอีเมลและรหัสผ่าน";
     return;
   }
 
   const res = await apiPost("auth.php?action=login", { email, password });
-
-  if(res.ok){
-    msgEl.textContent = "ล็อกอินสำเร็จ กำลังพาไปหน้าแอดมิน...";
-    setTimeout(() => location.href = "admin.html", 400);
-  }else{
-    msgEl.textContent = res.message || "ล็อกอินไม่สำเร็จ";
-    alert(res.message || "ล็อกอินไม่สำเร็จ");
+  if (!res.ok) {
+    msgLoginEl.textContent = res.message || "ล็อกอินไม่สำเร็จ";
+    return;
   }
+
+  const user = res.data && res.data[0] ? res.data[0] : null;
+  if (!user || (user.role || "") !== "student") {
+    await apiPost("auth.php?action=logout", {});
+    msgLoginEl.textContent = "หน้านี้ให้ล็อกอินเฉพาะนักศึกษาเท่านั้น";
+    return;
+  }
+
+  msgLoginEl.textContent = "ล็อกอินนักศึกษาสำเร็จ";
+  setTimeout(() => {
+    location.href = "student.html";
+  }, 250);
 }
 
-async function logout(){
+async function registerStudent() {
+  msgRegisterEl.textContent = "กำลังสมัครสมาชิก...";
+
+  const name = regNameEl.value.trim();
+  const email = regEmailEl.value.trim();
+  const password = regPasswordEl.value;
+
+  if (!name || !email || !password) {
+    msgRegisterEl.textContent = "กรอกชื่อ อีเมล และรหัสผ่าน";
+    return;
+  }
+  if (password.length < 6) {
+    msgRegisterEl.textContent = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+    return;
+  }
+
+  const res = await apiPost("auth.php?action=register", { name, email, password });
+  if (!res.ok) {
+    msgRegisterEl.textContent = res.message || "สมัครสมาชิกไม่สำเร็จ";
+    return;
+  }
+
+  msgRegisterEl.textContent = "สมัครสมาชิกสำเร็จ สามารถล็อกอินได้เลย";
+  loginEmailEl.value = email;
+  loginPasswordEl.value = "";
+  regPasswordEl.value = "";
+}
+
+async function logout() {
   const res = await apiPost("auth.php?action=logout", {});
-  msgEl.textContent = res.ok ? "ออกจากระบบแล้ว" : (res.message || "ออกจากระบบไม่สำเร็จ");
+  msgLoginEl.textContent = res.ok ? "ออกจากระบบแล้ว" : (res.message || "ออกจากระบบไม่สำเร็จ");
 }

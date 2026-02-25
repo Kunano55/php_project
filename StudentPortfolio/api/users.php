@@ -1,6 +1,7 @@
 <?php
 // api/users.php
 declare(strict_types=1);
+
 session_start();
 require_once __DIR__ . "/database.php";
 require_once __DIR__ . "/helpers.php";
@@ -32,7 +33,7 @@ if ($method === "GET") {
 
   // GET /users.php (admin list)
   require_admin($pdo);
-  $stmt = $pdo->query("SELECT id,email,name,major,year,role,created_at FROM sp_users ORDER BY id DESC LIMIT 200");
+  $stmt = $pdo->query("SELECT id,email,name,major,year,bio,avatar_url,role,created_at FROM sp_users ORDER BY id DESC LIMIT 500");
   json_out(true, $stmt->fetchAll(), "");
 }
 
@@ -43,25 +44,74 @@ if ($method === "PUT") {
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
   if (!is_owner_or_admin($u, $id)) json_out(false, null, "ไม่มีสิทธิ์แก้ไข", 403);
 
-  $name = trim(strval($body["name"] ?? ""));
-  $major = trim(strval($body["major"] ?? ""));
-  $year = trim(strval($body["year"] ?? ""));
-  $bio = trim(strval($body["bio"] ?? ""));
-  $avatar_url = trim(strval($body["avatar_url"] ?? ""));
+  $isAdmin = (($u["role"] ?? "") === "admin");
 
-  $stmt = $pdo->prepare("UPDATE sp_users SET name=?, major=?, year=?, bio=?, avatar_url=? WHERE id=?");
-  $stmt->execute([$name, $major, $year, $bio, $avatar_url, $id]);
+  $stmt = $pdo->prepare("SELECT id FROM sp_users WHERE id=? LIMIT 1");
+  $stmt->execute([$id]);
+  if (!$stmt->fetch()) json_out(false, null, "ไม่พบผู้ใช้", 404);
+
+  $fields = [];
+  $params = [];
+
+  if (array_key_exists("email", $body)) {
+    if (!$isAdmin) json_out(false, null, "เฉพาะแอดมินเท่านั้นที่แก้ email ได้", 403);
+    $email = trim(strval($body["email"] ?? ""));
+    if ($email === "") json_out(false, null, "email ห้ามว่าง", 400);
+    $fields[] = "email=?";
+    $params[] = $email;
+  }
+
+  $map = ["name", "major", "year", "bio", "avatar_url"];
+  foreach ($map as $key) {
+    if (array_key_exists($key, $body)) {
+      $fields[] = "{$key}=?";
+      $params[] = trim(strval($body[$key]));
+    }
+  }
+
+  if (count($fields) === 0) json_out(false, null, "ไม่มีฟิลด์ให้อัปเดต", 400);
+
+  $params[] = $id;
+  $sql = "UPDATE sp_users SET " . implode(", ", $fields) . " WHERE id=?";
+
+  try {
+    $upd = $pdo->prepare($sql);
+    $upd->execute($params);
+  } catch (Exception $e) {
+    json_out(false, null, "อัปเดตไม่สำเร็จ: " . $e->getMessage(), 400);
+  }
 
   json_out(true, null, "อัปเดตแล้ว");
 }
 
 if ($method === "DELETE") {
-  // delete user (admin only)
+  // delete student (admin only)
   require_admin($pdo);
+
   $id = intval($_GET["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
-  $stmt = $pdo->prepare("DELETE FROM sp_users WHERE id=?");
+
+  $stmt = $pdo->prepare("SELECT id,role FROM sp_users WHERE id=? LIMIT 1");
   $stmt->execute([$id]);
+  $target = $stmt->fetch();
+  if (!$target) json_out(false, null, "ไม่พบผู้ใช้", 404);
+  if (($target["role"] ?? "") !== "student") json_out(false, null, "ลบได้เฉพาะนักศึกษา", 400);
+
+  try {
+    $pdo->beginTransaction();
+
+    $delWorks = $pdo->prepare("DELETE FROM sp_works WHERE user_id=?");
+    $delWorks->execute([$id]);
+
+    $delUser = $pdo->prepare("DELETE FROM sp_users WHERE id=?");
+    $delUser->execute([$id]);
+
+    $pdo->commit();
+  } catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    json_out(false, null, "ลบไม่สำเร็จ: " . $e->getMessage(), 400);
+  }
+
   json_out(true, null, "ลบแล้ว");
 }
 

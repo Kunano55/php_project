@@ -5,9 +5,11 @@ declare(strict_types=1);
 function current_user(PDO $pdo): ?array {
   if (session_status() !== PHP_SESSION_ACTIVE) session_start();
   if (!isset($_SESSION["uid"])) return null;
+
   $stmt = $pdo->prepare("SELECT id,email,name,major,year,bio,avatar_url,role,created_at FROM sp_users WHERE id=?");
   $stmt->execute([intval($_SESSION["uid"])]);
   $u = $stmt->fetch();
+
   return $u ?: null;
 }
 
@@ -20,6 +22,10 @@ function require_login(PDO $pdo): array {
 function require_admin(PDO $pdo): array {
   $u = require_login($pdo);
   if (($u["role"] ?? "") !== "admin") json_out(false, null, "ต้องเป็นแอดมิน", 403);
+
+  $locked = !empty($_SESSION["admin_lock_ok"]);
+  if (!$locked) json_out(false, null, "ต้องยืนยันรหัสล็อคแอดมิน", 403);
+
   return $u;
 }
 

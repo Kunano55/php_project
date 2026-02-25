@@ -11,8 +11,10 @@
     <div class="container row">
       <a class="brand" href="index.html">Student Portfolio</a>
       <nav class="nav">
+        <a href="student.html">นักศึกษา</a>
         <a href="profile.html">โปรไฟล์</a>
-        <a href="admin.html">แอดมิน</a>
+        <a href="#" data-logout="1">ล็อกเอ้า</a>
+        <a href="login.html" data-login="1">ล็อกอิน</a>
       </nav>
     </div>
   </header>
@@ -20,14 +22,14 @@
   <main class="container">
     <section class="hero">
       <h1>คลังผลงานนักศึกษา</h1>
-      <p>ค้นหา/ดูผลงานเป็นการ์ด พร้อมหน้ารายละเอียด</p>
+      <p>ค้นหาและดูผลงานได้จากหน้านี้</p>
     </section>
 
     <section class="filters card">
       <div class="row gap">
-        <input id="q" class="input" placeholder="ค้นหาชื่อผลงาน/คำอธิบาย..." />
+        <input id="q" class="input" placeholder="ค้นหาชื่อผลงาน/คำอธิบาย" />
         <select id="category" class="input"></select>
-        <button id="btnSearch" class="btn">ค้นหา</button>
+        <button id="btnSearch" class="btn" type="button">ค้นหา</button>
       </div>
     </section>
 
@@ -38,10 +40,11 @@
   </main>
 
   <footer class="footer">
-    <div class="container muted">© Student Portfolio</div>
+    <div class="container muted">Student Portfolio</div>
   </footer>
 
   <script src="assets/js/api.js"></script>
+  <script src="assets/js/logout.js"></script>
   <script src="assets/js/index.js"></script>
 </body>
 </html>

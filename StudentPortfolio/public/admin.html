@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin</title>
+  <title>Admin Panel</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
@@ -12,14 +12,16 @@
       <a class="brand" href="index.html">Student Portfolio</a>
       <nav class="nav">
         <a href="index.html">ผลงาน</a>
+        <a href="student.html">นักศึกษา</a>
         <a href="profile.html">โปรไฟล์</a>
-        <a href="login.html">ล็อกอิน</a>
+        <a href="admin-login.html">เข้าสู่ระบบแอดมิน</a>
+        <a href="#" data-logout="1">ล็อกเอ้า</a>
       </nav>
     </div>
   </header>
 
   <main class="container">
-    <h1>Admin Panel</h1>
+    <h1>หน้าจัดการแอดมิน</h1>
 
     <section class="card">
       <h3>สรุปผลงานทั้งหมด</h3>
@@ -30,18 +32,25 @@
       <h3>จัดการหมวดหมู่</h3>
       <div class="row gap">
         <input id="catName" class="input" placeholder="ชื่อหมวดหมู่" />
-        <button id="addCat" class="btn">เพิ่มหมวด</button>
+        <button id="addCat" class="btn" type="button">เพิ่มหมวด</button>
       </div>
       <div id="catList" class="list"></div>
     </section>
 
     <section class="card">
-      <h3>ตรวจ/ซ่อนผลงานที่ไม่เหมาะสม</h3>
+      <h3>จัดการข้อมูลนักศึกษา</h3>
+      <p class="muted">แอดมินแก้ไขข้อมูลนักศึกษาได้ทั้งหมด และลบนักศึกษาได้</p>
+      <div id="studentList" class="list"></div>
+    </section>
+
+    <section class="card">
+      <h3>ตรวจสอบ/ซ่อนผลงาน</h3>
       <div id="workList" class="list"></div>
     </section>
   </main>
 
   <script src="assets/js/api.js"></script>
+  <script src="assets/js/logout.js"></script>
   <script src="assets/js/admin.js"></script>
 </body>
 </html>

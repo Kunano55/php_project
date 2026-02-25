@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>หน้าสำหรับนักศึกษา</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row">
+      <a class="brand" href="index.html">Student Portfolio</a>
+      <nav class="nav">
+        <a href="index.html">ผลงาน</a>
+        <a href="#" data-logout="1">ล็อกเอ้า</a>
+        <a href="login.html" data-login="1">ล็อกอิน</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>หน้าจัดการของนักศึกษา</h1>
+
+    <section class="card">
+      <div class="row gap">
+        <p class="muted" id="studentInfo" style="margin:0;"></p>
+        <button id="openCreateBtn" class="btn" type="button">+ เพิ่มผลงาน</button>
+      </div>
+    </section>
+
+    <section id="createSection" class="card">
+      <h3>เพิ่มผลงานใหม่</h3>
+      <div class="row gap">
+        <input id="titleIn" class="input" placeholder="ชื่อผลงาน" />
+        <select id="categoryIn" class="input"></select>
+      </div>
+      <textarea id="descIn" class="input" rows="4" placeholder="รายละเอียดผลงาน"></textarea>
+      <div class="row gap">
+        <input id="workUrlIn" class="input" placeholder="ลิงก์ผลงาน (ถ้ามี)" />
+      </div>
+      <div class="row gap">
+        <input id="coverUrlIn" class="input" placeholder="ลิงก์รูปปก หรืออัปโหลดด้านล่าง" />
+      </div>
+      <div class="row gap">
+        <input id="coverFileIn" type="file" class="input" accept="image/png,image/jpeg,image/webp" />
+        <button id="uploadCoverBtn" class="btn" type="button">อัปโหลดรูปปก</button>
+      </div>
+      <div class="row gap" style="justify-content:flex-start;">
+        <button id="createBtn" class="btn" type="button">เพิ่มผลงาน</button>
+        <span id="createMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>ผลงานของฉัน</h3>
+      <div id="myWorks" class="list"></div>
+      <p id="myWorksEmpty" class="muted" style="display:none;">ยังไม่มีผลงาน</p>
+    </section>
+  </main>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/logout.js"></script>
+  <script src="assets/js/student.js"></script>
+</body>
+</html>

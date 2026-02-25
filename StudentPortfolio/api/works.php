@@ -1,6 +1,7 @@
 <?php
 // api/works.php
 declare(strict_types=1);
+
 session_start();
 require_once __DIR__ . "/database.php";
 require_once __DIR__ . "/helpers.php";
@@ -54,7 +55,6 @@ function fetch_works(PDO $pdo, array $opts): array {
 }
 
 if ($method === "GET") {
-  // admin summary
   if (isset($_GET["summary"]) && $_GET["summary"] === "1") {
     require_admin($pdo);
     $row = $pdo->query("SELECT
@@ -65,7 +65,6 @@ if ($method === "GET") {
     json_out(true, [$row ?: ["total" => 0, "visible" => 0, "hidden" => 0]], "");
   }
 
-  // admin list all
   if (isset($_GET["admin"]) && $_GET["admin"] === "1") {
     require_admin($pdo);
     $data = fetch_works($pdo, [
@@ -77,7 +76,6 @@ if ($method === "GET") {
     json_out(true, $data, "");
   }
 
-  // logged in user's works
   if (isset($_GET["mine"]) && $_GET["mine"] === "1") {
     $u = require_login($pdo);
     $data = fetch_works($pdo, [
@@ -89,7 +87,6 @@ if ($method === "GET") {
     json_out(true, $data, "");
   }
 
-  // single work detail
   if (isset($_GET["id"]) && intval($_GET["id"]) > 0) {
     $id = intval($_GET["id"]);
     $only_visible = true;
@@ -99,7 +96,11 @@ if ($method === "GET") {
       $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
       $stmt->execute([$id]);
       $row = $stmt->fetch();
-      if ($row && is_owner_or_admin($u, intval($row["user_id"]))) {
+
+      if ($row && intval($u["id"] ?? 0) === intval($row["user_id"])) {
+        $only_visible = false;
+      }
+      if ($row && ($u["role"] ?? "") === "admin" && !empty($_SESSION["admin_lock_ok"])) {
         $only_visible = false;
       }
     }
@@ -111,7 +112,6 @@ if ($method === "GET") {
     json_out(true, $data, "");
   }
 
-  // public list
   $opts = [
     "only_visible" => true,
     "q" => $_GET["q"] ?? "",
@@ -132,36 +132,52 @@ if ($method === "POST") {
   if (($u["role"] ?? "") === "admin" && array_key_exists("user_id", $body)) {
     $owner_id = intval($body["user_id"]);
     if ($owner_id <= 0) json_out(false, null, "user_id ไม่ถูกต้อง", 400);
+
     $stmt = $pdo->prepare("SELECT id FROM sp_users WHERE id=? LIMIT 1");
     $stmt->execute([$owner_id]);
     if (!$stmt->fetch()) json_out(false, null, "ไม่พบผู้ใช้", 404);
   }
 
-  $category_id = null;
-  if (array_key_exists("category_id", $body) && $body["category_id"] !== null && $body["category_id"] !== "") {
-    $category_id = intval($body["category_id"]);
+  $category_id = intval($body["category_id"] ?? 0);
+  if ($category_id <= 0) {
+    $firstCat = $pdo->query("SELECT id FROM sp_categories ORDER BY id ASC LIMIT 1")->fetch();
+    if (!$firstCat) json_out(false, null, "ยังไม่มีหมวดหมู่ กรุณาให้แอดมินเพิ่มหมวดก่อน", 400);
+    $category_id = intval($firstCat["id"]);
+  } else {
+    $catCheck = $pdo->prepare("SELECT id FROM sp_categories WHERE id=? LIMIT 1");
+    $catCheck->execute([$category_id]);
+    if (!$catCheck->fetch()) json_out(false, null, "ไม่พบหมวดหมู่ที่เลือก", 400);
   }
+
   $description = trim(strval($body["description"] ?? ""));
   $cover_url = trim(strval($body["cover_url"] ?? ""));
   $work_url = trim(strval($body["work_url"] ?? ""));
-  $is_visible = array_key_exists("is_visible", $body) ? intval($body["is_visible"]) : 1;
 
-  $stmt = $pdo->prepare("INSERT INTO sp_works(user_id,category_id,title,description,cover_url,work_url,is_visible) VALUES(?,?,?,?,?,?,?)");
-  $stmt->execute([$owner_id, $category_id, $title, $description, $cover_url, $work_url, $is_visible]);
+  $is_visible = 1;
+  if (($u["role"] ?? "") === "admin" && array_key_exists("is_visible", $body)) {
+    $is_visible = intval($body["is_visible"]) === 0 ? 0 : 1;
+  }
+
+  try {
+    $stmt = $pdo->prepare("INSERT INTO sp_works(user_id,category_id,title,description,cover_url,work_url,is_visible) VALUES(?,?,?,?,?,?,?)");
+    $stmt->execute([$owner_id, $category_id, $title, $description, $cover_url, $work_url, $is_visible]);
+  } catch (Exception $e) {
+    json_out(false, null, "เพิ่มข้อมูลไม่สำเร็จ: " . $e->getMessage(), 400);
+  }
 
   json_out(true, [["id" => $pdo->lastInsertId()]], "สร้างแล้ว", 201);
 }
 
 if ($method === "PUT") {
-  $u = require_login($pdo);
+  require_admin($pdo);
+
   $id = intval($body["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
+  $stmt = $pdo->prepare("SELECT id FROM sp_works WHERE id=?");
   $stmt->execute([$id]);
   $row = $stmt->fetch();
   if (!$row) json_out(false, null, "ไม่พบผลงาน", 404);
-  if (!is_owner_or_admin($u, intval($row["user_id"]))) json_out(false, null, "ไม่มีสิทธิ์แก้ไข", 403);
 
   $fields = [];
   $params = [];
@@ -175,12 +191,19 @@ if ($method === "PUT") {
   }
 
   if (array_key_exists("category_id", $body)) {
+    $categoryVal = ($body["category_id"] === null || $body["category_id"] === "") ? null : intval($body["category_id"]);
+    if ($categoryVal !== null) {
+      $catCheck = $pdo->prepare("SELECT id FROM sp_categories WHERE id=? LIMIT 1");
+      $catCheck->execute([$categoryVal]);
+      if (!$catCheck->fetch()) json_out(false, null, "ไม่พบหมวดหมู่ที่เลือก", 400);
+    }
     $fields[] = "category_id = ?";
-    $params[] = ($body["category_id"] === null || $body["category_id"] === "") ? null : intval($body["category_id"]);
+    $params[] = $categoryVal;
   }
+
   if (array_key_exists("is_visible", $body)) {
     $fields[] = "is_visible = ?";
-    $params[] = intval($body["is_visible"]);
+    $params[] = intval($body["is_visible"]) === 0 ? 0 : 1;
   }
 
   if (count($fields) === 0) json_out(false, null, "ไม่มีฟิลด์ให้อัปเดต", 400);
@@ -194,15 +217,15 @@ if ($method === "PUT") {
 }
 
 if ($method === "DELETE") {
-  $u = require_login($pdo);
+  require_admin($pdo);
+
   $id = intval($_GET["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
+  $stmt = $pdo->prepare("SELECT id FROM sp_works WHERE id=?");
   $stmt->execute([$id]);
   $row = $stmt->fetch();
   if (!$row) json_out(false, null, "ไม่พบผลงาน", 404);
-  if (!is_owner_or_admin($u, intval($row["user_id"]))) json_out(false, null, "ไม่มีสิทธิ์ลบ", 403);
 
   $del = $pdo->prepare("DELETE FROM sp_works WHERE id=?");
   $del->execute([$id]);

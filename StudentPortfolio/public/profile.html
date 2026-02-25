@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>โปรไฟล์</title>
+  <title>โปรไฟล์นักศึกษา</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
@@ -12,7 +12,9 @@
       <a class="brand" href="index.html">Student Portfolio</a>
       <nav class="nav">
         <a href="index.html">ผลงาน</a>
-        <a href="admin.html">แอดมิน</a>
+        <a href="student.html">นักศึกษา</a>
+        <a href="#" data-logout="1">ล็อกเอ้า</a>
+        <a href="login.html" data-login="1">ล็อกอิน</a>
       </nav>
     </div>
   </header>
@@ -39,16 +41,21 @@
         <input id="majorIn" class="input" placeholder="สาขา" />
         <input id="yearIn" class="input" placeholder="ชั้นปี" />
       </div>
-      <textarea id="bioIn" class="input" rows="4" placeholder="แนะนำตัว/ทักษะ"></textarea>
-      <input id="avatarIn" class="input" placeholder="ลิงก์รูปโปรไฟล์ (หรือใช้ upload ภายหลัง)" />
+      <textarea id="bioIn" class="input" rows="4" placeholder="แนะนำตัว / ทักษะ"></textarea>
+      <input id="avatarIn" class="input" placeholder="ลิงก์รูปโปรไฟล์" />
       <div class="row gap">
-        <button id="save" class="btn">บันทึก</button>
+        <input id="avatarFileIn" type="file" class="input" accept="image/png,image/jpeg,image/webp" />
+        <button id="uploadAvatarBtn" class="btn" type="button">อัปโหลดรูปโปรไฟล์</button>
+      </div>
+      <div class="row gap" style="justify-content:flex-start;">
+        <button id="save" class="btn" type="button">บันทึก</button>
         <span id="msg" class="muted"></span>
       </div>
     </section>
   </main>
 
   <script src="assets/js/api.js"></script>
+  <script src="assets/js/logout.js"></script>
   <script src="assets/js/profile.js"></script>
 </body>
 </html>

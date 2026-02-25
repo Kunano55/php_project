@@ -26,6 +26,17 @@ async function apiDelete(path) {
   const res = await fetch(`${API_BASE}/${path}`, { method: "DELETE", credentials: "include" });
   return res.json();
 }
+async function apiUpload(path, file, fieldName = "file") {
+  const form = new FormData();
+  form.append(fieldName, file);
+
+  const res = await fetch(`${API_BASE}/${path}`, {
+    credentials: "include",
+    method: "POST",
+    body: form
+  });
+  return res.json();
+}
 function qs(name) {
   return new URLSearchParams(location.search).get(name);
 }

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>เข้าสู่ระบบแอดมิน</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row">
+      <a class="brand" href="index.html">Student Portfolio</a>
+      <nav class="nav">
+        <a href="index.html">ผลงาน</a>
+        <a href="login.html">เข้าสู่ระบบนักศึกษา</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>เข้าสู่ระบบแอดมิน</h1>
+
+    <section class="card" style="max-width:640px; margin:14px auto;">
+      <label class="muted">อีเมลแอดมิน</label>
+      <input id="email" class="input" placeholder="เช่น admin@demo.com" autocomplete="username" />
+
+      <div style="height:10px"></div>
+
+      <label class="muted">รหัสผ่าน</label>
+      <input id="password" type="password" class="input" placeholder="รหัสผ่าน" autocomplete="current-password" />
+
+      <div style="height:10px"></div>
+
+      <label class="muted">รหัสล็อคแอดมิน</label>
+      <input id="lockCode" type="password" class="input" placeholder="รหัสล็อคแอดมิน" autocomplete="off" />
+
+      <div class="row gap" style="justify-content:flex-start; margin-top:12px;">
+        <button id="btnLogin" class="btn" type="button">ล็อกอินแอดมิน</button>
+        <button id="btnLogout" class="btn" type="button" style="background:#fff; color:#111;">ออกจากระบบ</button>
+        <span id="msg" class="muted"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/admin-login.js"></script>
+</body>
+</html>
