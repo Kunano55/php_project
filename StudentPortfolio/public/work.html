@@ -15,13 +15,30 @@
     <section class="card">
       <img id="cover" class="cover" alt="cover" />
       <h1 id="title">-</h1>
+      <a id="ownerLink" class="row gap" href="#" style="text-decoration:none; color:inherit; margin:12px 0;">
+        <img id="ownerAvatar" src="" alt="avatar" style="width:48px; height:48px; border-radius:50%; object-fit:cover;" />
+        <div style="flex:1;">
+          <div class="muted" style="font-size:12px;">ผลงานของ</div>
+          <b id="ownerName">-</b>
+        </div>
+      </a>
       <div class="row gap">
         <span class="pill" id="cat">-</span>
-        <span class="pill" id="status">-</span>
       </div>
       <p id="desc" class="muted">-</p>
       <div class="row gap">
         <a id="link" class="btn" target="_blank" rel="noreferrer">เปิดลิงก์ผลงาน</a>
+      </div>
+
+      <!-- Image Gallery Section -->
+      <div id="gallerySection" style="margin-top:24px; display:none;">
+        <h2 style="margin-bottom:12px;">รูปภาพเพิ่มเติม</h2>
+        <div id="gallery" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
+          <!-- Images will be loaded here -->
+        </div>
+        <div id="emptyGallery" style="text-align:center; color:#666; padding:24px;">
+          ไม่มีรูปภาพเพิ่มเติม
+        </div>
       </div>
     </section>
   </main>

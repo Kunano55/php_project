@@ -39,7 +39,8 @@ function fetch_works(PDO $pdo, array $opts): array {
   $sql = "SELECT
             w.*,
             c.name AS category_name,
-            u.name AS owner_name
+            u.name AS owner_name,
+            u.avatar_url AS owner_avatar
           FROM sp_works w
           LEFT JOIN sp_categories c ON c.id = w.category_id
           LEFT JOIN sp_users u ON u.id = w.user_id";

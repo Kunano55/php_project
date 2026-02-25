@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>โปรไฟล์นักศึกษา</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <site-header></site-header>
+
+  <main class="container">
+    <a class="muted" href="index.html">← กลับ</a>
+
+    <section class="card row gap">
+      <img id="avatar" class="avatar" alt="profile" />
+      <div style="flex:1">
+        <h2 id="name">-</h2>
+        <p id="bio" class="muted">-</p>
+        <div class="row gap">
+          <span class="pill" id="major">-</span>
+          <span class="pill" id="year">-</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>ผลงาน</h3>
+      <div id="works" class="grid"></div>
+      <p id="emptyWorks" class="muted" style="display:none;">ยังไม่มีผลงาน</p>
+    </section>
+  </main>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/header.js"></script>
+  <script src="assets/js/view-profile.js"></script>
+</body>
+</html>

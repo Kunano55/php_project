@@ -36,6 +36,25 @@
         <button id="clearCoverBtn" class="btn" type="button" style="background:#999;">ลบรูปที่เลือก</button>
       </div>
 
+      <!-- Gallery Management Section -->
+      <div style="margin:24px 0;">
+        <h3>รูปภาพเพิ่มเติม</h3>
+        <p class="muted">อัปโหลดหลายรูปเพื่อแสดงในเพจรายละเอียดของผลงาน</p>
+        
+        <div class="row gap" style="margin:12px 0;">
+          <input id="galleryFileIn" type="file" class="input" accept="image/png,image/jpeg,image/webp" />
+          <button id="addImageBtn" class="btn" type="button" style="background:#28a745;">เพิ่มรูป</button>
+        </div>
+
+        <div id="galleryContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; margin-top:12px;">
+          <!-- Gallery images will be displayed here -->
+        </div>
+        
+        <div id="emptyGalleryMsg" style="text-align:center; color:#999; padding:24px;">
+          ยังไม่มีรูปภาพเพิ่มเติม
+        </div>
+      </div>
+
       <div class="row gap" style="justify-content:flex-start; margin-top:16px;">
         <button id="saveBtn" class="btn" type="button">บันทึกการแก้ไข</button>
         <button id="deleteBtn" class="btn" type="button" style="background:#dc3545;">ลบผลงาน</button>
