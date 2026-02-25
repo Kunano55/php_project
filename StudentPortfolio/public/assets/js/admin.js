@@ -5,7 +5,14 @@ const workList = document.getElementById("workList");
 
 const AUTH_MESSAGES = ["ต้องล็อกอินก่อน", "ต้องเป็นแอดมิน"];
 
+let editingCatId = null;
+let editingStudentId = null;
+
 document.getElementById("addCat").onclick = addCategory;
+document.getElementById("catCloseBtn").onclick = () => closeCatModal();
+document.getElementById("catSaveBtn").onclick = saveCategoryEdit;
+document.getElementById("stuCloseBtn").onclick = () => closeStudentModal();
+document.getElementById("stuSaveBtn").onclick = saveStudentEdit;
 
 (async function init() {
   const me = await apiGet("auth.php?action=me");
@@ -58,7 +65,10 @@ async function loadCategories() {
   catList.innerHTML = cats.map(c => `
     <div class="list-item row" style="justify-content:space-between;">
       <b>${escapeHtml(c.name)}</b>
-      <button class="btn" type="button" onclick="delCategory(${c.id})">ลบ</button>
+      <div class="row gap">
+        <button class="btn" type="button" style="background:#666;" onclick="openCatModal(${c.id}, '${escapeAttr(c.name)}')">แก้ไข</button>
+        <button class="btn" type="button" onclick="delCategory(${c.id})">ลบ</button>
+      </div>
     </div>
   `).join("");
 }
@@ -95,6 +105,37 @@ async function delCategory(id) {
   await loadCategories();
 }
 
+function openCatModal(id, name) {
+  editingCatId = id;
+  document.getElementById("catEditName").value = name;
+  document.getElementById("catModal").style.display = "flex";
+}
+
+function closeCatModal() {
+  document.getElementById("catModal").style.display = "none";
+  editingCatId = null;
+}
+
+async function saveCategoryEdit() {
+  if (!editingCatId) return;
+
+  const newName = document.getElementById("catEditName").value.trim();
+  if (!newName) {
+    alert("กรุณากรอกชื่อหมวดหมู่");
+    return;
+  }
+
+  const res = await apiPut("categories.php", { id: editingCatId, name: newName });
+  if (!res.ok) {
+    handleAuthError(res);
+    alert(res.message || "แก้ไขหมวดหมู่ไม่สำเร็จ");
+    return;
+  }
+
+  closeCatModal();
+  await loadCategories();
+}
+
 async function loadStudents() {
   const res = await apiGet("users.php");
   if (handleAuthError(res)) return;
@@ -114,27 +155,16 @@ async function loadStudents() {
   studentList.innerHTML = students.map(s => {
     return `
       <div class="list-item">
-        <div class="row gap">
-          <b>#${s.id} ${escapeHtml(s.name || "-")}</b>
-          <span class="pill">student</span>
-        </div>
-
-        <div class="row gap" style="margin-top:8px;">
-          <input id="stuEmail_${s.id}" class="input" placeholder="email" value="${escapeAttr(s.email || "")}" />
-          <input id="stuName_${s.id}" class="input" placeholder="ชื่อ" value="${escapeAttr(s.name || "")}" />
-        </div>
-
-        <div class="row gap" style="margin-top:8px;">
-          <input id="stuMajor_${s.id}" class="input" placeholder="สาขา" value="${escapeAttr(s.major || "")}" />
-          <input id="stuYear_${s.id}" class="input" placeholder="ชั้นปี" value="${escapeAttr(s.year || "")}" />
-        </div>
-
-        <textarea id="stuBio_${s.id}" class="input" rows="3" placeholder="bio" style="margin-top:8px;">${escapeHtml(s.bio || "")}</textarea>
-        <input id="stuAvatar_${s.id}" class="input" placeholder="avatar url" value="${escapeAttr(s.avatar_url || "")}" style="margin-top:8px;" />
-
-        <div class="row gap" style="justify-content:flex-start; margin-top:10px;">
-          <button class="btn" type="button" onclick="saveStudent(${s.id})">บันทึกข้อมูล</button>
-          <button class="btn" type="button" style="background:#fff;color:#111;" onclick="deleteStudent(${s.id})">ลบนักศึกษา</button>
+        <div class="row" style="justify-content:space-between; align-items:start;">
+          <div style="flex:1;">
+            <b>#${s.id} ${escapeHtml(s.name || "-")}</b>
+            <div class="muted">${escapeHtml(s.email || "-")}</div>
+            <div class="muted" style="font-size:12px;">${escapeHtml(s.major || "-")} ปี ${escapeHtml(s.year || "-")}</div>
+          </div>
+          <div class="row gap">
+            <button class="btn" type="button" style="background:#666;" onclick="openStudentModal(${s.id})">ดูข้อมูล</button>
+            <button class="btn" type="button" style="background:#dc3545;" onclick="deleteStudent(${s.id})">ลบ</button>
+          </div>
         </div>
       </div>
     `;
@@ -168,6 +198,84 @@ async function saveStudent(id) {
   await loadStudents();
 }
 
+async function openStudentModal(id) {
+  const res = await apiGet("users.php");
+  if (!res.ok) {
+    alert("โหลดข้อมูลไม่สำเร็จ");
+    return;
+  }
+
+  const student = (res.data || []).find(u => u.id == id);
+  if (!student) {
+    alert("ไม่พบข้อมูลนักศึกษา");
+    return;
+  }
+
+  editingStudentId = id;
+  const content = `
+    <div class="row gap" style="margin-bottom:8px;">
+      <label class="muted">อีเมล</label>
+      <input id="stuModalEmail" class="input" value="${escapeAttr(student.email || "")}" />
+    </div>
+    <div class="row gap" style="margin-bottom:8px;">
+      <label class="muted">ชื่อ</label>
+      <input id="stuModalName" class="input" value="${escapeAttr(student.name || "")}" />
+    </div>
+    <div class="row gap" style="margin-bottom:8px;">
+      <label class="muted">สาขา</label>
+      <input id="stuModalMajor" class="input" value="${escapeAttr(student.major || "")}" />
+    </div>
+    <div class="row gap" style="margin-bottom:8px;">
+      <label class="muted">ชั้นปี</label>
+      <input id="stuModalYear" class="input" value="${escapeAttr(student.year || "")}" />
+    </div>
+    <div style="margin-bottom:8px;">
+      <label class="muted">แนะนำตัว</label>
+      <textarea id="stuModalBio" class="input" rows="3" style="margin-top:4px;">${escapeHtml(student.bio || "")}</textarea>
+    </div>
+    <div style="margin-bottom:8px;">
+      <label class="muted">รูปโปรไฟล์</label>
+      <input id="stuModalAvatar" class="input" value="${escapeAttr(student.avatar_url || "")}" style="margin-top:4px;" />
+    </div>
+  `;
+  
+  document.getElementById("studentModalContent").innerHTML = content;
+  document.getElementById("studentModal").style.display = "flex";
+}
+
+function closeStudentModal() {
+  document.getElementById("studentModal").style.display = "none";
+  editingStudentId = null;
+}
+
+async function saveStudentEdit() {
+  if (!editingStudentId) return;
+
+  const payload = {
+    id: editingStudentId,
+    email: document.getElementById("stuModalEmail").value.trim(),
+    name: document.getElementById("stuModalName").value.trim(),
+    major: document.getElementById("stuModalMajor").value.trim(),
+    year: document.getElementById("stuModalYear").value.trim(),
+    bio: document.getElementById("stuModalBio").value.trim(),
+    avatar_url: document.getElementById("stuModalAvatar").value.trim()
+  };
+
+  if (!payload.email) {
+    alert("กรุณากรอกอีเมล");
+    return;
+  }
+
+  const res = await apiPut("users.php", payload);
+  if (!res.ok) {
+    alert(res.message || "บันทึกไม่สำเร็จ");
+    return;
+  }
+
+  closeStudentModal();
+  await loadStudents();
+}
+
 async function deleteStudent(id) {
   const name = getValue(`stuName_${id}`) || `ID ${id}`;
   if (!confirm(`ยืนยันการลบนักศึกษา ${name}?`)) return;
@@ -195,16 +303,19 @@ async function loadWorks() {
     return `
       <div class="list-item">
         <div class="row" style="justify-content:space-between;">
-          <div>
+          <div style="flex:1;">
             <b>${escapeHtml(w.title)}</b>
-            <div class="muted">${escapeHtml(w.category_name || "-")}</div>
+            <div class="muted">${escapeHtml(w.owner_name || "-")} / ${escapeHtml(w.category_name || "-")}</div>
+            <p class="muted" style="margin:4px 0 8px;">${escapeHtml((w.description || "").slice(0, 140))}</p>
           </div>
-          <div class="row gap" style="justify-content:flex-end;">
+          <div class="row gap" style="flex-direction:column; justify-content:flex-start;">
             <span class="pill">${visible ? "แสดง" : "ซ่อน"}</span>
-            <button class="btn" type="button" onclick="toggleWork(${w.id}, ${visible ? 0 : 1})">${visible ? "ซ่อน" : "แสดง"}</button>
           </div>
         </div>
-        <p class="muted" style="margin:8px 0 0;">${escapeHtml((w.description || "").slice(0, 140))}</p>
+        <div class="row gap" style="justify-content:flex-start;">
+          <a class="btn" href="work.html?id=${w.id}" target="_blank" style="background:#666;">ชมผลงาน</a>
+          <button class="btn" type="button" onclick="toggleWork(${w.id}, ${visible ? 0 : 1})">${visible ? "ซ่อน" : "แสดง"}</button>
+        </div>
       </div>
     `;
   }).join("");

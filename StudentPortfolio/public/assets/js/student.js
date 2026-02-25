@@ -11,8 +11,10 @@ const createMsg = document.getElementById("createMsg");
 const myWorksEl = document.getElementById("myWorks");
 const myWorksEmpty = document.getElementById("myWorksEmpty");
 const createBtn = document.getElementById("createBtn");
+let pendingCoverFile = null;
 
-document.getElementById("uploadCoverBtn").onclick = uploadCover;
+coverFileIn.onchange = previewCoverFile;
+document.getElementById("clearCoverBtn").onclick = clearCoverFile;
 createBtn.onclick = createWork;
 if (openCreateBtn) {
   openCreateBtn.onclick = goToCreateForm;
@@ -55,23 +57,23 @@ async function loadCategories() {
   categoryIn.value = String(cats[0].id);
 }
 
-async function uploadCover() {
+async function previewCoverFile() {
   const file = coverFileIn.files && coverFileIn.files[0] ? coverFileIn.files[0] : null;
   if (!file) {
-    createMsg.textContent = "กรุณาเลือกไฟล์รูปก่อน";
+    createMsg.textContent = "";
+    pendingCoverFile = null;
     return;
   }
 
-  createMsg.textContent = "กำลังอัปโหลดรูป...";
-  const res = await apiUpload("upload.php", file);
-  if (!res.ok) {
-    createMsg.textContent = res.message || "อัปโหลดรูปไม่สำเร็จ";
-    return;
-  }
+  pendingCoverFile = file;
+  createMsg.textContent = "เลือกรูป: " + file.name;
+}
 
-  const url = res.data && res.data[0] ? res.data[0].url : "";
-  coverUrlIn.value = url;
-  createMsg.textContent = "อัปโหลดรูปสำเร็จ";
+function clearCoverFile() {
+  pendingCoverFile = null;
+  coverUrlIn.value = "";
+  coverFileIn.value = "";
+  createMsg.textContent = "";
 }
 
 async function createWork() {
@@ -90,6 +92,20 @@ async function createWork() {
   if (categoryId <= 0) {
     createMsg.textContent = "กรุณาเลือกหมวดหมู่";
     return;
+  }
+
+  // Upload pending file if exists
+  if (pendingCoverFile) {
+    createMsg.textContent = "กำลังอัปโหลดรูป...";
+    const uploadRes = await apiUpload("upload.php", pendingCoverFile);
+    if (!uploadRes.ok) {
+      createMsg.textContent = uploadRes.message || "อัปโหลดรูปไม่สำเร็จ";
+      return;
+    }
+    const url = uploadRes.data && uploadRes.data[0] ? uploadRes.data[0].url : "";
+    coverUrlIn.value = url;
+    pendingCoverFile = null;
+    coverFileIn.value = "";
   }
 
   createMsg.textContent = "กำลังบันทึก...";
@@ -146,7 +162,8 @@ async function loadMyWorks() {
           </div>
         </div>
         <div class="row gap" style="justify-content:flex-end; margin-top:8px;">
-          <a class="btn" href="work.html?id=${w.id}">ดูรายละเอียด</a>
+          <a class="btn" href="work.html?id=${w.id}">ดู</a>
+          <a class="btn" href="edit-work.html?id=${w.id}" style="background:#666;">แก้ไข</a>
         </div>
       </div>
     `;

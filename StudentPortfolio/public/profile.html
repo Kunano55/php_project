@@ -32,11 +32,11 @@
         <input id="yearIn" class="input" placeholder="ชั้นปี" />
       </div>
       <textarea id="bioIn" class="input" rows="4" placeholder="แนะนำตัว / ทักษะ"></textarea>
-      <input id="avatarIn" class="input" placeholder="ลิงก์รูปโปรไฟล์" />
       <div class="row gap">
         <input id="avatarFileIn" type="file" class="input" accept="image/png,image/jpeg,image/webp" />
-        <button id="uploadAvatarBtn" class="btn" type="button">อัปโหลดรูปโปรไฟล์</button>
+        <button id="clearAvatarBtn" class="btn" type="button" style="background:#999;">ลบรูปที่เลือก</button>
       </div>
+      <input id="avatarIn" type="hidden" />
       <div class="row gap" style="justify-content:flex-start;">
         <button id="save" class="btn" type="button">บันทึก</button>
         <span id="msg" class="muted"></span>

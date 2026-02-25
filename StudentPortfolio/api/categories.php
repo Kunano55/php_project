@@ -35,4 +35,21 @@ if ($method === "DELETE") {
   json_out(true, null, "ลบแล้ว");
 }
 
+if ($method === "PUT") {
+  $u = require_admin($pdo);
+  $id = intval($body["id"] ?? 0);
+  $name = trim(strval($body["name"] ?? ""));
+  
+  if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
+  if ($name === "") json_out(false, null, "ต้องส่ง name", 400);
+  
+  try {
+    $stmt = $pdo->prepare("UPDATE sp_categories SET name=? WHERE id=?");
+    $stmt->execute([$name, $id]);
+    json_out(true, [["id" => $id, "name" => $name]], "แก้ไขแล้ว");
+  } catch (Exception $e) {
+    json_out(false, null, "แก้ไขไม่สำเร็จ: ชื่ออาจซ้ำ", 400);
+  }
+}
+
 json_out(false, null, "Not found", 404);

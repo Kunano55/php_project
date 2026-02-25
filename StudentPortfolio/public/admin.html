@@ -26,11 +26,32 @@
       <div id="catList" class="list"></div>
     </section>
 
+    <div id="catModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; flex-direction:column;">
+      <div class="card" style="max-width:400px; background:#fff;">
+        <h3 style="margin-top:0;">แก้ไขหมวดหมู่</h3>
+        <input id="catEditName" class="input" placeholder="ชื่อหมวดหมู่" />
+        <div class="row gap" style="justify-content:flex-start; margin-top:12px;">
+          <button id="catSaveBtn" class="btn" type="button">บันทึก</button>
+          <button id="catCloseBtn" class="btn" type="button" style="background:#fff;color:#111;">ปิด</button>
+        </div>
+      </div>
+    </div>
+
     <section class="card">
       <h3>จัดการข้อมูลนักศึกษา</h3>
-      <p class="muted">แอดมินแก้ไขข้อมูลนักศึกษาได้ทั้งหมด และลบนักศึกษาได้</p>
       <div id="studentList" class="list"></div>
     </section>
+
+    <div id="studentModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; flex-direction:column;">
+      <div class="card" style="max-width:500px; background:#fff; max-height:80vh; overflow-y:auto;">
+        <h3 style="margin-top:0;">ข้อมูลนักศึกษา</h3>
+        <div id="studentModalContent"></div>
+        <div class="row gap" style="justify-content:flex-start; margin-top:12px;">
+          <button id="stuSaveBtn" class="btn" type="button">บันทึก</button>
+          <button id="stuCloseBtn" class="btn" type="button" style="background:#fff;color:#111;">ปิด</button>
+        </div>
+      </div>
+    </div>
 
     <section class="card">
       <h3>ตรวจสอบ/ซ่อนผลงาน</h3>

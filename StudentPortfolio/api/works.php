@@ -169,15 +169,22 @@ if ($method === "POST") {
 }
 
 if ($method === "PUT") {
-  require_admin($pdo);
+  $u = require_login($pdo);
 
   $id = intval($body["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT id FROM sp_works WHERE id=?");
+  $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
   $stmt->execute([$id]);
   $row = $stmt->fetch();
   if (!$row) json_out(false, null, "ไม่พบผลงาน", 404);
+
+  // Check ownership: user must be owner or admin
+  $isOwner = intval($u["id"] ?? 0) === intval($row["user_id"]);
+  $isAdmin = ($u["role"] ?? "") === "admin";
+  if (!$isOwner && !$isAdmin) {
+    json_out(false, null, "ต้องเป็นเจ้าของงานหรือแอดมิน", 403);
+  }
 
   $fields = [];
   $params = [];
@@ -202,8 +209,11 @@ if ($method === "PUT") {
   }
 
   if (array_key_exists("is_visible", $body)) {
-    $fields[] = "is_visible = ?";
-    $params[] = intval($body["is_visible"]) === 0 ? 0 : 1;
+    // Only admins can change visibility
+    if ($isAdmin) {
+      $fields[] = "is_visible = ?";
+      $params[] = intval($body["is_visible"]) === 0 ? 0 : 1;
+    }
   }
 
   if (count($fields) === 0) json_out(false, null, "ไม่มีฟิลด์ให้อัปเดต", 400);
@@ -217,15 +227,22 @@ if ($method === "PUT") {
 }
 
 if ($method === "DELETE") {
-  require_admin($pdo);
+  $u = require_login($pdo);
 
   $id = intval($_GET["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT id FROM sp_works WHERE id=?");
+  $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
   $stmt->execute([$id]);
   $row = $stmt->fetch();
   if (!$row) json_out(false, null, "ไม่พบผลงาน", 404);
+
+  // Check ownership: user must be owner or admin
+  $isOwner = intval($u["id"] ?? 0) === intval($row["user_id"]);
+  $isAdmin = ($u["role"] ?? "") === "admin";
+  if (!$isOwner && !$isAdmin) {
+    json_out(false, null, "ต้องเป็นเจ้าของงานหรือแอดมิน", 403);
+  }
 
   $del = $pdo->prepare("DELETE FROM sp_works WHERE id=?");
   $del->execute([$id]);

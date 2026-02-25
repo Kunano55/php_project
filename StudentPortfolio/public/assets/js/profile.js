@@ -13,9 +13,11 @@ const avatarFileIn = document.getElementById("avatarFileIn");
 const msg = document.getElementById("msg");
 
 let currentUserId = 0;
+let pendingAvatarFile = null;
 
+avatarFileIn.onchange = previewAvatarFile;
+document.getElementById("clearAvatarBtn").onclick = clearAvatarFile;
 document.getElementById("save").onclick = save;
-document.getElementById("uploadAvatarBtn").onclick = uploadAvatar;
 
 (async function init() {
   const me = await apiGet("auth.php?action=me");
@@ -47,37 +49,52 @@ function render(user) {
   yearEl.textContent = user.year || "-";
 }
 
-async function uploadAvatar() {
+async function previewAvatarFile() {
   const file = avatarFileIn.files && avatarFileIn.files[0] ? avatarFileIn.files[0] : null;
   if (!file) {
-    msg.textContent = "กรุณาเลือกไฟล์รูปก่อน";
+    msg.textContent = "";
+    pendingAvatarFile = null;
     return;
   }
 
-  msg.textContent = "กำลังอัปโหลดรูป...";
-  const res = await apiUpload("upload.php", file);
-  if (!res.ok) {
-    msg.textContent = res.message || "อัปโหลดรูปไม่สำเร็จ";
-    return;
-  }
+  pendingAvatarFile = file;
+  msg.textContent = "เลือกรูป: " + file.name;
 
-  const url = res.data && res.data[0] ? res.data[0].url : "";
-  avatarIn.value = url;
-  render({
-    name: nameIn.value,
-    major: majorIn.value,
-    year: yearIn.value,
-    bio: bioIn.value,
-    avatar_url: url
-  });
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    avatar.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
 
-  msg.textContent = "อัปโหลดรูปสำเร็จ";
+function clearAvatarFile() {
+  pendingAvatarFile = null;
+  avatarIn.value = "";
+  avatarFileIn.value = "";
+  msg.textContent = "";
+  // Reset to original avatar or placeholder
+  avatar.src = avatarIn.value || "https://via.placeholder.com/256?text=Profile";
 }
 
 async function save() {
   if (!currentUserId) {
     msg.textContent = "ไม่พบข้อมูลผู้ใช้";
     return;
+  }
+
+  // Upload pending file if exists
+  if (pendingAvatarFile) {
+    msg.textContent = "กำลังอัปโหลดรูป...";
+    const uploadRes = await apiUpload("upload.php", pendingAvatarFile);
+    if (!uploadRes.ok) {
+      msg.textContent = uploadRes.message || "อัปโหลดรูปไม่สำเร็จ";
+      return;
+    }
+    const url = uploadRes.data && uploadRes.data[0] ? uploadRes.data[0].url : "";
+    avatarIn.value = url;
+    pendingAvatarFile = null;
+    avatarFileIn.value = "";
   }
 
   msg.textContent = "กำลังบันทึก...";
