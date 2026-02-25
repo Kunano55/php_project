@@ -3,10 +3,31 @@ const catList = document.getElementById("catList");
 const studentList = document.getElementById("studentList");
 const workList = document.getElementById("workList");
 
+// student search elements
+const stuSearchEl = document.getElementById("stuSearch");
+const stuSearchBtnEl = document.getElementById("stuSearchBtn");
+
+// new UI elements for filtering works
+const filterCatEl = document.getElementById("filterCat");
+const filterSearchEl = document.getElementById("filterSearch");
+const filterBtnEl = document.getElementById("filterBtn");
+
+// cache categories for dropdown
+let categoriesCache = [];
+
 const AUTH_MESSAGES = ["ต้องล็อกอินก่อน", "ต้องเป็นแอดมิน"];
 
 let editingCatId = null;
 let editingStudentId = null;
+
+// wire up listeners for filter controls
+if (filterBtnEl) filterBtnEl.onclick = loadWorks;
+if (filterSearchEl) filterSearchEl.onkeypress = e => { if (e.key === 'Enter') loadWorks(); };
+if (filterCatEl) filterCatEl.onchange = loadWorks;
+
+// student search events
+if (stuSearchBtnEl) stuSearchBtnEl.onclick = applyStudentSearch;
+if (stuSearchEl) stuSearchEl.onkeypress = e => { if (e.key === 'Enter') applyStudentSearch(); };
 
 document.getElementById("addCat").onclick = addCategory;
 document.getElementById("catCloseBtn").onclick = () => closeCatModal();
@@ -62,6 +83,8 @@ async function loadCategories() {
   if (handleAuthError(res)) return;
 
   const cats = res.data || [];
+  categoriesCache = cats; // store for filtering
+
   catList.innerHTML = cats.map(c => `
     <div class="list-item row" style="justify-content:space-between;">
       <b>${escapeHtml(c.name)}</b>
@@ -71,7 +94,17 @@ async function loadCategories() {
       </div>
     </div>
   `).join("");
+
+  populateFilterCats();
 }
+
+function populateFilterCats() {
+  if (!filterCatEl) return;
+  // reset options preserving the "all" entry
+  filterCatEl.innerHTML = '<option value="">ทุกหมวดหมู่</option>' +
+    categoriesCache.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+}
+
 
 async function addCategory() {
   const nameEl = document.getElementById("catName");
@@ -136,6 +169,8 @@ async function saveCategoryEdit() {
   await loadCategories();
 }
 
+let studentCache = [];
+
 async function loadStudents() {
   const res = await apiGet("users.php");
   if (handleAuthError(res)) return;
@@ -146,7 +181,12 @@ async function loadStudents() {
 
   const users = res.data || [];
   const students = users.filter(u => (u.role || "") === "student");
+  studentCache = students; // keep for filtering
 
+  renderStudentList(students);
+}
+
+function renderStudentList(students) {
   if (!students.length) {
     studentList.innerHTML = `<div class="muted">ยังไม่มีข้อมูลนักศึกษา</div>`;
     return;
@@ -169,6 +209,23 @@ async function loadStudents() {
       </div>
     `;
   }).join("");
+}
+
+function applyStudentSearch() {
+  if (!stuSearchEl) return;
+  const q = stuSearchEl.value.trim().toLowerCase();
+  if (!q) {
+    renderStudentList(studentCache);
+    return;
+  }
+  const filtered = studentCache.filter(s => {
+    return (
+      (s.name || "").toLowerCase().includes(q) ||
+      (s.email || "").toLowerCase().includes(q) ||
+      (s.major || "").toLowerCase().includes(q)
+    );
+  });
+  renderStudentList(filtered);
 }
 
 async function saveStudent(id) {
@@ -294,10 +351,26 @@ async function deleteStudent(id) {
 }
 
 async function loadWorks() {
-  const res = await apiGet("works.php?admin=1");
+  // build URL with filters
+  let url = "works.php?admin=1";
+  if (filterSearchEl) {
+    const q = filterSearchEl.value.trim();
+    if (q) url += `&q=${encodeURIComponent(q)}`;
+  }
+  if (filterCatEl) {
+    const cat = filterCatEl.value;
+    if (cat) url += `&category_id=${encodeURIComponent(cat)}`;
+  }
+
+  const res = await apiGet(url);
   if (handleAuthError(res)) return;
 
   const works = res.data || [];
+  if (works.length === 0) {
+    workList.innerHTML = `<div class="muted">ไม่พบผลงาน</div>`;
+    return;
+  }
+
   workList.innerHTML = works.map(w => {
     const visible = String(w.is_visible) === "1";
     return `

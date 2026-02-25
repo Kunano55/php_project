@@ -39,6 +39,10 @@
 
     <section class="card">
       <h3>จัดการข้อมูลนักศึกษา</h3>
+      <div class="row gap" style="margin-bottom:12px; align-items:center;">
+        <input id="stuSearch" class="input" placeholder="ค้นหานักศึกษา" />
+        <button id="stuSearchBtn" class="btn" type="button">ค้นหา</button>
+      </div>
       <div id="studentList" class="list"></div>
     </section>
 
@@ -55,6 +59,14 @@
 
     <section class="card">
       <h3>ตรวจสอบ/ซ่อนผลงาน</h3>
+      <!-- filter controls -->
+      <div class="row gap" style="margin-bottom:12px; align-items:center;">
+        <select id="filterCat" class="input">
+          <option value="">ทุกหมวดหมู่</option>
+        </select>
+        <input id="filterSearch" class="input" placeholder="ค้นหา (ชื่อ,คำอธิบาย,ผู้ทำ)" />
+        <button id="filterBtn" class="btn" type="button">ค้นหา</button>
+      </div>
       <div id="workList" class="list"></div>
     </section>
   </main>
