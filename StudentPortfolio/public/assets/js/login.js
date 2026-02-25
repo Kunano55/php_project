@@ -21,7 +21,12 @@ document.getElementById("btnGoRegister").onclick = () => {
     return;
   }
 
-  msgLoginEl.textContent = "สถานะ: บัญชีนี้เป็นแอดมิน ให้ใช้หน้าแอดมินล็อกอิน";
+  if ((user.role || "") === "admin") {
+    msgLoginEl.textContent = `สถานะ: ล็อกอินเป็นแอดมินอยู่ (${user.email})`;
+    return;
+  }
+
+  msgLoginEl.textContent = "สถานะ: ยังไม่ได้ล็อกอิน";
 })();
 
 async function loginStudent() {
@@ -41,14 +46,16 @@ async function loginStudent() {
   }
 
   const user = res.data && res.data[0] ? res.data[0] : null;
-  if (!user || (user.role || "") !== "student") {
+  if (!user) {
     await apiPost("auth.php?action=logout", {});
-    msgLoginEl.textContent = "หน้านี้ให้ล็อกอินเฉพาะนักศึกษาเท่านั้น";
+    msgLoginEl.textContent = "ล็อกอินไม่สำเร็จ";
     return;
   }
 
   msgLoginEl.textContent = "ล็อกอินสำเร็จ";
+  
+  const role = user.role || "";
   setTimeout(() => {
-    location.href = "student.html";
+    location.href = role === "admin" ? "admin.html" : "student.html";
   }, 250);
 }

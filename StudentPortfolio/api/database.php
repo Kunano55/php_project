@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 $DB_HOST = getenv('DB_HOST') ?: 'localhost';
-$DB_NAME = getenv('DB_NAME') ?: 'it67040233114';
-$DB_USER = getenv('DB_USER') ?: 'it67040233114';
-$DB_PASS = getenv('DB_PASS') ?: 'X0A8T9V7';
+$DB_NAME = getenv('DB_NAME') ?: 'it67040233141';
+$DB_USER = getenv('DB_USER') ?: 'it67040233141';
+$DB_PASS = getenv('DB_PASS') ?: 'K3D2H5I4';
 $DB_CHARSET = 'utf8mb4';
 
 $dsn = "mysql:host={$DB_HOST};dbname={$DB_NAME};charset={$DB_CHARSET}";

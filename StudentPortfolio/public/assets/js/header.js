@@ -71,7 +71,6 @@
     if (!isLoggedIn) {
       links.push({ href: "login.html", label: "ล็อกอิน" });
       links.push({ href: "register.html", label: "สมัคร" });
-      links.push({ href: "admin-login.html", label: "แอดมินล็อกอิน" });
       return links;
     }
 

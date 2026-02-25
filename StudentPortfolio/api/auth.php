@@ -10,8 +10,6 @@ $method = $_SERVER["REQUEST_METHOD"];
 $action = $_GET["action"] ?? "";
 $body = read_json_body();
 
-$ADMIN_LOCK_CODE = getenv("ADMIN_LOCK_CODE") ?: "12344";
-
 if ($method === "GET" && $action === "me") {
   $u = current_user($pdo);
   json_out(true, $u ? [$u] : [], "");
@@ -20,7 +18,6 @@ if ($method === "GET" && $action === "me") {
 if ($method === "POST" && $action === "login") {
   $email = trim(strval($body["email"] ?? ""));
   $password = strval($body["password"] ?? "");
-  $lockCode = trim(strval($body["lock_code"] ?? ""));
 
   if ($email === "" || $password === "") {
     json_out(false, null, "กรอก email และ password", 400);
@@ -32,15 +29,6 @@ if ($method === "POST" && $action === "login") {
 
   if (!$u || !password_verify($password, $u["password_hash"])) {
     json_out(false, null, "อีเมลหรือรหัสผ่านไม่ถูกต้อง", 401);
-  }
-
-  if (($u["role"] ?? "") === "admin") {
-    if ($lockCode === "" || !hash_equals($ADMIN_LOCK_CODE, $lockCode)) {
-      json_out(false, null, "รหัสล็อคแอดมินไม่ถูกต้อง", 401);
-    }
-    $_SESSION["admin_lock_ok"] = true;
-  } else {
-    $_SESSION["admin_lock_ok"] = false;
   }
 
   $_SESSION["uid"] = intval($u["id"]);

@@ -3,7 +3,7 @@ const catList = document.getElementById("catList");
 const studentList = document.getElementById("studentList");
 const workList = document.getElementById("workList");
 
-const AUTH_MESSAGES = ["ต้องล็อกอินก่อน", "ต้องเป็นแอดมิน", "ต้องยืนยันรหัสล็อคแอดมิน"];
+const AUTH_MESSAGES = ["ต้องล็อกอินก่อน", "ต้องเป็นแอดมิน"];
 
 document.getElementById("addCat").onclick = addCategory;
 
@@ -13,7 +13,7 @@ document.getElementById("addCat").onclick = addCategory;
 
   if (!user) {
     alert("กรุณาล็อกอินแอดมินก่อน");
-    location.href = "admin-login.html";
+    location.href = "login.html";
     return;
   }
 
@@ -32,7 +32,7 @@ document.getElementById("addCat").onclick = addCategory;
 function handleAuthError(res) {
   if (res && AUTH_MESSAGES.includes(res.message)) {
     alert(res.message);
-    location.href = "admin-login.html";
+    location.href = "login.html";
     return true;
   }
   return false;
