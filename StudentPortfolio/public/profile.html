@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>โปรไฟล์</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container row">
+      <a class="brand" href="index.html">Student Portfolio</a>
+      <nav class="nav">
+        <a href="index.html">ผลงาน</a>
+        <a href="admin.html">แอดมิน</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>โปรไฟล์นักศึกษา</h1>
+
+    <section class="card row gap">
+      <img id="avatar" class="avatar" alt="profile" />
+      <div style="flex:1">
+        <h2 id="name">-</h2>
+        <p id="bio" class="muted">-</p>
+        <div class="row gap">
+          <span class="pill" id="major">-</span>
+          <span class="pill" id="year">-</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>แก้ไขโปรไฟล์</h3>
+      <div class="row gap">
+        <input id="nameIn" class="input" placeholder="ชื่อ" />
+        <input id="majorIn" class="input" placeholder="สาขา" />
+        <input id="yearIn" class="input" placeholder="ชั้นปี" />
+      </div>
+      <textarea id="bioIn" class="input" rows="4" placeholder="แนะนำตัว/ทักษะ"></textarea>
+      <input id="avatarIn" class="input" placeholder="ลิงก์รูปโปรไฟล์ (หรือใช้ upload ภายหลัง)" />
+      <div class="row gap">
+        <button id="save" class="btn">บันทึก</button>
+        <span id="msg" class="muted"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/profile.js"></script>
+</body>
+</html>
