@@ -7,20 +7,14 @@
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="container row">
-      <a class="brand" href="index.html">Student Portfolio</a>
-      <nav class="nav">
-        <a href="index.html">ผลงาน</a>
-      </nav>
-    </div>
-  </header>
+  <site-header></site-header>
 
   <main class="container">
     <h1>เข้าสู่ระบบนักศึกษา</h1>
 
     <section class="card" style="max-width:640px; margin:14px auto;">
-      <h3 style="margin-top:0;">ล็อกอินนักศึกษา</h3>
+      <h3 style="margin-top:0;">ล็อกอิน</h3>
+
       <label class="muted">อีเมล</label>
       <input id="loginEmail" class="input" placeholder="เช่น student@demo.com" autocomplete="username" />
 
@@ -31,34 +25,14 @@
 
       <div class="row gap" style="justify-content:flex-start; margin-top:12px;">
         <button id="btnLogin" class="btn" type="button">ล็อกอิน</button>
-        <button id="btnLogout" class="btn" type="button" style="background:#fff; color:#111;">ออกจากระบบ</button>
+        <button id="btnGoRegister" class="btn" type="button" style="background:#fff; color:#111;">สมัคร</button>
         <span id="msgLogin" class="muted"></span>
-      </div>
-    </section>
-
-    <section class="card" style="max-width:640px; margin:14px auto;">
-      <h3 style="margin-top:0;">สมัครบัญชีนักศึกษา</h3>
-      <label class="muted">ชื่อ</label>
-      <input id="regName" class="input" placeholder="ชื่อ-นามสกุล" autocomplete="name" />
-
-      <div style="height:10px"></div>
-
-      <label class="muted">อีเมล</label>
-      <input id="regEmail" class="input" placeholder="อีเมลสำหรับใช้งาน" autocomplete="email" />
-
-      <div style="height:10px"></div>
-
-      <label class="muted">รหัสผ่าน</label>
-      <input id="regPassword" type="password" class="input" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password" />
-
-      <div class="row gap" style="justify-content:flex-start; margin-top:12px;">
-        <button id="btnRegister" class="btn" type="button">สมัครสมาชิก</button>
-        <span id="msgRegister" class="muted"></span>
       </div>
     </section>
   </main>
 
   <script src="assets/js/api.js"></script>
+  <script src="assets/js/header.js"></script>
   <script src="assets/js/login.js"></script>
 </body>
 </html>

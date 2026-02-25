@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>สมัครสมาชิกนักศึกษา</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <site-header></site-header>
+
+  <main class="container">
+    <h1>สมัครสมาชิกนักศึกษา</h1>
+
+    <section class="card" style="max-width:640px; margin:14px auto;">
+      <h3 style="margin-top:0;">สร้างบัญชีนักศึกษา</h3>
+
+      <label class="muted">ชื่อ-นามสกุล</label>
+      <input id="regName" class="input" placeholder="ชื่อ-นามสกุล" autocomplete="name" />
+
+      <div style="height:10px"></div>
+
+      <label class="muted">อีเมล</label>
+      <input id="regEmail" class="input" placeholder="อีเมลสำหรับใช้งาน" autocomplete="email" />
+
+      <div style="height:10px"></div>
+
+      <label class="muted">รหัสผ่าน</label>
+      <input id="regPassword" type="password" class="input" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password" />
+
+      <div class="row gap" style="justify-content:flex-start; margin-top:12px;">
+        <button id="btnRegister" class="btn" type="button">สมัคร</button>
+        <a href="login.html" class="btn" style="background:#fff; color:#111;">กลับไปล็อกอิน</a>
+        <span id="msgRegister" class="muted"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/header.js"></script>
+  <script src="assets/js/register.js"></script>
+</body>
+</html>
