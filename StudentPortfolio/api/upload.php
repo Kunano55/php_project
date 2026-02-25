@@ -33,7 +33,7 @@ if (intval($f["size"]) > $max_bytes) {
   json_out(false, null, "ไฟล์ใหญ่เกิน 3MB", 400);
 }
 
-$upload_dir = __DIR__ . "/../public/uploads";
+$upload_dir = __DIR__ . "/../uploads";
 if (!is_dir($upload_dir)) {
   if (!mkdir($upload_dir, 0755, true) && !is_dir($upload_dir)) {
     json_out(false, null, "สร้างโฟลเดอร์ uploads ไม่สำเร็จ", 500);
@@ -52,7 +52,7 @@ if (!move_uploaded_file($tmp, $dest)) {
   json_out(false, null, "ย้ายไฟล์ไม่สำเร็จ", 500);
 }
 
-// Return a portable path that works for all pages under /public.
-$url = "uploads/" . $name;
+// Return a path relative to pages in /public so they can reference the uploads folder at project root.
+$url = "../uploads/" . $name;
 
 json_out(true, [["url" => $url]], "อัปโหลดแล้ว", 201);

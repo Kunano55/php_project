@@ -22,10 +22,6 @@ function require_login(PDO $pdo): array {
 function require_admin(PDO $pdo): array {
   $u = require_login($pdo);
   if (($u["role"] ?? "") !== "admin") json_out(false, null, "ต้องเป็นแอดมิน", 403);
-
-  $locked = !empty($_SESSION["admin_lock_ok"]);
-  if (!$locked) json_out(false, null, "ต้องยืนยันรหัสล็อคแอดมิน", 403);
-
   return $u;
 }
 

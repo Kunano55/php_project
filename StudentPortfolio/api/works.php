@@ -100,7 +100,7 @@ if ($method === "GET") {
       if ($row && intval($u["id"] ?? 0) === intval($row["user_id"])) {
         $only_visible = false;
       }
-      if ($row && ($u["role"] ?? "") === "admin" && !empty($_SESSION["admin_lock_ok"])) {
+      if ($row && ($u["role"] ?? "") === "admin") {
         $only_visible = false;
       }
     }
