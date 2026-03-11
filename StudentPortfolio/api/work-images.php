@@ -1,5 +1,5 @@
 <?php
-// api/work-images.php - Manage gallery images for works
+// api/work-images.php - API สำหรับจัดการรูปภาพของผลงาน (gallery images)\n// สามารถ GET รูปทั้งหมดของงาน, POST เพิ่มรูปใหม่ (ต้อง login), DELETE ลบรูป (ต้องเป็นเจ้าของหรือ admin)
 declare(strict_types=1);
 
 session_start();
@@ -10,7 +10,7 @@ $method = $_SERVER["REQUEST_METHOD"];
 
 // Ensure table exists
 try {
-  $pdo->exec("CREATE TABLE IF NOT EXISTS sp_work_images (
+  $mysqli->query("CREATE TABLE IF NOT EXISTS sp_work_images (
     id INT AUTO_INCREMENT PRIMARY KEY,
     work_id INT NOT NULL,
     image_url VARCHAR(255) NOT NULL,
@@ -27,9 +27,10 @@ if ($method === "GET") {
     $work_id = intval($_GET["work_id"]);
     if ($work_id <= 0) json_out(false, null, "ต้องส่ง work_id", 400);
 
-    $stmt = $pdo->prepare("SELECT id, work_id, image_url, created_at FROM sp_work_images WHERE work_id=? ORDER BY created_at ASC");
-    $stmt->execute([$work_id]);
-    $images = $stmt->fetchAll();
+    $stmt = $mysqli->prepare("SELECT id, work_id, image_url, created_at FROM sp_work_images WHERE work_id=? ORDER BY created_at ASC");
+    $stmt->bind_param('i', $work_id);
+    $stmt->execute();
+    $images = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     json_out(true, $images, "");
   }
 
@@ -38,15 +39,16 @@ if ($method === "GET") {
 
 if ($method === "POST") {
   // POST /work-images.php -- add image to work
-  $u = require_login($pdo);
+  $u = require_login($mysqli);
 
   $work_id = intval($_POST["work_id"] ?? 0);
   if ($work_id <= 0) json_out(false, null, "ต้องส่ง work_id", 400);
 
   // Verify user owns the work
-  $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
-  $stmt->execute([$work_id]);
-  $work = $stmt->fetch();
+  $stmt = $mysqli->prepare("SELECT user_id FROM sp_works WHERE id=?");
+  $stmt->bind_param('i', $work_id);
+  $stmt->execute();
+  $work = $stmt->get_result()->fetch_assoc();
   if (!$work) json_out(false, null, "ไม่พบผลงาน", 404);
 
   $isOwner = intval($u["id"]) === intval($work["user_id"]);
@@ -99,9 +101,10 @@ if ($method === "POST") {
   $url = "../uploads/" . $name;
 
   try {
-    $ins = $pdo->prepare("INSERT INTO sp_work_images(work_id, image_url) VALUES(?, ?)");
-    $ins->execute([$work_id, $url]);
-    $imageId = $pdo->lastInsertId();
+    $ins = $mysqli->prepare("INSERT INTO sp_work_images(work_id, image_url) VALUES(?, ?)");
+    $ins->bind_param('is', $work_id, $url);
+    $ins->execute();
+    $imageId = $mysqli->insert_id;
     json_out(true, [["id" => $imageId, "work_id" => $work_id, "image_url" => $url]], "อัปโหลดแล้ว", 201);
   } catch (Exception $e) {
     json_out(false, null, "บันทึกข้อมูลไม่สำเร็จ: " . $e->getMessage(), 400);
@@ -110,20 +113,22 @@ if ($method === "POST") {
 
 if ($method === "DELETE") {
   // DELETE /work-images.php?id=X -- delete image by id
-  $u = require_login($pdo);
+  $u = require_login($mysqli);
 
   $id = intval($_GET["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT work_id FROM sp_work_images WHERE id=?");
-  $stmt->execute([$id]);
-  $img = $stmt->fetch();
+  $stmt = $mysqli->prepare("SELECT work_id FROM sp_work_images WHERE id=?");
+  $stmt->bind_param('i', $id);
+  $stmt->execute();
+  $img = $stmt->get_result()->fetch_assoc();
   if (!$img) json_out(false, null, "ไม่พบรูปภาพ", 404);
 
   $work_id = intval($img["work_id"]);
-  $workStmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
-  $workStmt->execute([$work_id]);
-  $work = $workStmt->fetch();
+  $workStmt = $mysqli->prepare("SELECT user_id FROM sp_works WHERE id=?");
+  $workStmt->bind_param('i', $work_id);
+  $workStmt->execute();
+  $work = $workStmt->get_result()->fetch_assoc();
   if (!$work) json_out(false, null, "ไม่พบผลงาน", 404);
 
   $isOwner = intval($u["id"]) === intval($work["user_id"]);
@@ -133,8 +138,9 @@ if ($method === "DELETE") {
   }
 
   try {
-    $del = $pdo->prepare("DELETE FROM sp_work_images WHERE id=?");
-    $del->execute([$id]);
+    $del = $mysqli->prepare("DELETE FROM sp_work_images WHERE id=?");
+    $del->bind_param('i', $id);
+    $del->execute();
     json_out(true, null, "ลบแล้ว");
   } catch (Exception $e) {
     json_out(false, null, "ลบไม่สำเร็จ: " . $e->getMessage(), 400);

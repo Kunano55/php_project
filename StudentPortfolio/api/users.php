@@ -1,5 +1,6 @@
 <?php
-// api/users.php
+// api/users.php - API สำหรับ CRUD user profile
+// ได้ข้อมูล user, leaf update profile, delete student (admin only)
 declare(strict_types=1);
 
 session_start();
@@ -9,46 +10,50 @@ require_once __DIR__ . "/helpers.php";
 $method = $_SERVER["REQUEST_METHOD"];
 $body = read_json_body();
 
+// ===== GET endpoints =====
 if ($method === "GET") {
-  // GET /users.php?me=1
+  // GET /users.php?me=1 - ดึงข้อมูลผู้ใช้ปัจจุบัน
   if (isset($_GET["me"]) && $_GET["me"] === "1") {
-    $u = current_user($pdo);
+    $u = current_user($mysqli);
     json_out(true, $u ? [$u] : [], "");
   }
 
-  // GET /users.php?public=1
+  // GET /users.php?public=1 - ดึงรายชื่อ student ทั้งหมด (สาธารณะ)
   if (isset($_GET["public"]) && $_GET["public"] === "1") {
-    $stmt = $pdo->query("SELECT id,name,major,year,bio,avatar_url,created_at FROM sp_users WHERE role='student' ORDER BY name ASC, id ASC LIMIT 500");
-    json_out(true, $stmt->fetchAll(), "");
+    $result = $mysqli->query("SELECT id,name,major,year,bio,avatar_url,created_at FROM sp_users WHERE role='student' ORDER BY name ASC, id ASC LIMIT 500");
+    json_out(true, $result->fetch_all(MYSQLI_ASSOC), "");
   }
 
-  // GET /users.php?id=1
+  // GET /users.php?id=1 - ดึงข้อมูล user ตาม id
   if (isset($_GET["id"])) {
     $id = intval($_GET["id"]);
-    $stmt = $pdo->prepare("SELECT id,email,name,major,year,bio,avatar_url,role,created_at FROM sp_users WHERE id=?");
-    $stmt->execute([$id]);
-    $u = $stmt->fetch();
+    $stmt = $mysqli->prepare("SELECT id,email,name,major,year,bio,avatar_url,role,created_at FROM sp_users WHERE id=?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $u = $stmt->get_result()->fetch_assoc();
     json_out(true, $u ? [$u] : [], "");
   }
 
-  // GET /users.php (admin list)
-  require_admin($pdo);
-  $stmt = $pdo->query("SELECT id,email,name,major,year,bio,avatar_url,role,created_at FROM sp_users ORDER BY id DESC LIMIT 500");
-  json_out(true, $stmt->fetchAll(), "");
+  // GET /users.php - ดึงรายชื่อ user ทั้งหมด (admin only)
+  require_admin($mysqli);
+  $result = $mysqli->query("SELECT id,email,name,major,year,bio,avatar_url,role,created_at FROM sp_users ORDER BY id DESC LIMIT 500");
+  json_out(true, $result->fetch_all(MYSQLI_ASSOC), "");
 }
 
+// ===== PUT endpoint =====
+// PUT /users.php - อัปเดต user profile (เจ้าของหรือ admin)
 if ($method === "PUT") {
-  // update profile (owner or admin)
-  $u = require_login($pdo);
+  $u = require_login($mysqli);
   $id = intval($body["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
   if (!is_owner_or_admin($u, $id)) json_out(false, null, "ไม่มีสิทธิ์แก้ไข", 403);
 
   $isAdmin = (($u["role"] ?? "") === "admin");
 
-  $stmt = $pdo->prepare("SELECT id FROM sp_users WHERE id=? LIMIT 1");
-  $stmt->execute([$id]);
-  if (!$stmt->fetch()) json_out(false, null, "ไม่พบผู้ใช้", 404);
+  $stmt = $mysqli->prepare("SELECT id FROM sp_users WHERE id=? LIMIT 1");
+  $stmt->bind_param('i', $id);
+  $stmt->execute();
+  if (!$stmt->get_result()->fetch_assoc()) json_out(false, null, "ไม่พบผู้ใช้", 404);
 
   $fields = [];
   $params = [];
@@ -75,8 +80,18 @@ if ($method === "PUT") {
   $sql = "UPDATE sp_users SET " . implode(", ", $fields) . " WHERE id=?";
 
   try {
-    $upd = $pdo->prepare($sql);
-    $upd->execute($params);
+    $upd = $mysqli->prepare($sql);
+    // bind dynamic parameters
+    if ($params) {
+      $types = '';
+      foreach ($params as $p) {
+        if (is_int($p)) $types .= 'i';
+        elseif (is_float($p)) $types .= 'd';
+        else $types .= 's';
+      }
+      $upd->bind_param($types, ...$params);
+    }
+    $upd->execute();
   } catch (Exception $e) {
     json_out(false, null, "อัปเดตไม่สำเร็จ: " . $e->getMessage(), 400);
   }
@@ -86,29 +101,32 @@ if ($method === "PUT") {
 
 if ($method === "DELETE") {
   // delete student (admin only)
-  require_admin($pdo);
+  require_admin($mysqli);
 
   $id = intval($_GET["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT id,role FROM sp_users WHERE id=? LIMIT 1");
-  $stmt->execute([$id]);
-  $target = $stmt->fetch();
+  $stmt = $mysqli->prepare("SELECT id,role FROM sp_users WHERE id=? LIMIT 1");
+  $stmt->bind_param('i', $id);
+  $stmt->execute();
+  $target = $stmt->get_result()->fetch_assoc();
   if (!$target) json_out(false, null, "ไม่พบผู้ใช้", 404);
   if (($target["role"] ?? "") !== "student") json_out(false, null, "ลบได้เฉพาะนักศึกษา", 400);
 
   try {
-    $pdo->beginTransaction();
+    $mysqli->begin_transaction();
 
-    $delWorks = $pdo->prepare("DELETE FROM sp_works WHERE user_id=?");
-    $delWorks->execute([$id]);
+    $delWorks = $mysqli->prepare("DELETE FROM sp_works WHERE user_id=?");
+    $delWorks->bind_param('i', $id);
+    $delWorks->execute();
 
-    $delUser = $pdo->prepare("DELETE FROM sp_users WHERE id=?");
-    $delUser->execute([$id]);
+    $delUser = $mysqli->prepare("DELETE FROM sp_users WHERE id=?");
+    $delUser->bind_param('i', $id);
+    $delUser->execute();
 
-    $pdo->commit();
+    $mysqli->commit();
   } catch (Exception $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($mysqli->in_transaction) $mysqli->rollback();
     json_out(false, null, "ลบไม่สำเร็จ: " . $e->getMessage(), 400);
   }
 

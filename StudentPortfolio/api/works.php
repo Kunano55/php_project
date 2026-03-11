@@ -1,5 +1,5 @@
 <?php
-// api/works.php
+// api/works.php - API สำหรับ CRUD ผลงาน (works)\n// GET: ดึงข้อมูลผลงาน (ทั้งหมด, ของฉัน, admin, ตาม id)\n// POST: สร้างผลงานใหม่ (ต้อง login)\n// PUT: อัปเดตผลงาน (เจ้าของหรือ admin)\n// DELETE: ลบผลงาน (เจ้าของหรือ admin)
 declare(strict_types=1);
 
 session_start();
@@ -9,7 +9,7 @@ require_once __DIR__ . "/helpers.php";
 $method = $_SERVER["REQUEST_METHOD"];
 $body = read_json_body();
 
-function fetch_works(PDO $pdo, array $opts): array {
+function fetch_works(mysqli $mysqli, array $opts): array {
   $where = [];
   $params = [];
 
@@ -50,25 +50,35 @@ function fetch_works(PDO $pdo, array $opts): array {
   }
   $sql .= " ORDER BY w.created_at DESC LIMIT 500";
 
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute($params);
-  return $stmt->fetchAll();
+  $stmt = $mysqli->prepare($sql);
+  if (count($params) > 0) {
+    $types = '';
+    foreach ($params as $p) {
+      if (is_int($p)) $types .= 'i';
+      elseif (is_float($p)) $types .= 'd';
+      else $types .= 's';
+    }
+    $stmt->bind_param($types, ...$params);
+  }
+  $stmt->execute();
+  return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 if ($method === "GET") {
   if (isset($_GET["summary"]) && $_GET["summary"] === "1") {
-    require_admin($pdo);
-    $row = $pdo->query("SELECT
+    require_admin($mysqli);
+    $result = $mysqli->query("SELECT
         COUNT(*) AS total,
         SUM(CASE WHEN is_visible=1 THEN 1 ELSE 0 END) AS visible,
         SUM(CASE WHEN is_visible=0 THEN 1 ELSE 0 END) AS hidden
-      FROM sp_works")->fetch();
+      FROM sp_works");
+    $row = $result->fetch_assoc();
     json_out(true, [$row ?: ["total" => 0, "visible" => 0, "hidden" => 0]], "");
   }
 
   if (isset($_GET["admin"]) && $_GET["admin"] === "1") {
-    require_admin($pdo);
-    $data = fetch_works($pdo, [
+    require_admin($mysqli);
+    $data = fetch_works($mysqli, [
       "only_visible" => false,
       "q" => ($_GET["q"] ?? ""),
       "category_id" => ($_GET["category_id"] ?? ""),
@@ -78,8 +88,8 @@ if ($method === "GET") {
   }
 
   if (isset($_GET["mine"]) && $_GET["mine"] === "1") {
-    $u = require_login($pdo);
-    $data = fetch_works($pdo, [
+    $u = require_login($mysqli);
+    $data = fetch_works($mysqli, [
       "only_visible" => false,
       "user_id" => intval($u["id"]),
       "q" => ($_GET["q"] ?? ""),
@@ -92,11 +102,12 @@ if ($method === "GET") {
     $id = intval($_GET["id"]);
     $only_visible = true;
 
-    $u = current_user($pdo);
+    $u = current_user($mysqli);
     if ($u) {
-      $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
-      $stmt->execute([$id]);
-      $row = $stmt->fetch();
+      $stmt = $mysqli->prepare("SELECT user_id FROM sp_works WHERE id=?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
+      $row = $stmt->get_result()->fetch_assoc();
 
       if ($row && intval($u["id"] ?? 0) === intval($row["user_id"])) {
         $only_visible = false;
@@ -106,7 +117,7 @@ if ($method === "GET") {
       }
     }
 
-    $data = fetch_works($pdo, [
+    $data = fetch_works($mysqli, [
       "only_visible" => $only_visible,
       "id" => $id,
     ]);
@@ -119,12 +130,12 @@ if ($method === "GET") {
     "category_id" => $_GET["category_id"] ?? "",
     "user_id" => $_GET["user_id"] ?? "",
   ];
-  $data = fetch_works($pdo, $opts);
+  $data = fetch_works($mysqli, $opts);
   json_out(true, $data, "");
 }
 
 if ($method === "POST") {
-  $u = require_login($pdo);
+  $u = require_login($mysqli);
 
   $title = trim(strval($body["title"] ?? ""));
   if ($title === "") json_out(false, null, "ต้องส่ง title", 400);
@@ -134,20 +145,23 @@ if ($method === "POST") {
     $owner_id = intval($body["user_id"]);
     if ($owner_id <= 0) json_out(false, null, "user_id ไม่ถูกต้อง", 400);
 
-    $stmt = $pdo->prepare("SELECT id FROM sp_users WHERE id=? LIMIT 1");
-    $stmt->execute([$owner_id]);
-    if (!$stmt->fetch()) json_out(false, null, "ไม่พบผู้ใช้", 404);
+    $stmt = $mysqli->prepare("SELECT id FROM sp_users WHERE id=? LIMIT 1");
+    $stmt->bind_param('i', $owner_id);
+    $stmt->execute();
+    if (!$stmt->get_result()->fetch_assoc()) json_out(false, null, "ไม่พบผู้ใช้", 404);
   }
 
   $category_id = intval($body["category_id"] ?? 0);
   if ($category_id <= 0) {
-    $firstCat = $pdo->query("SELECT id FROM sp_categories ORDER BY id ASC LIMIT 1")->fetch();
+    $res = $mysqli->query("SELECT id FROM sp_categories ORDER BY id ASC LIMIT 1");
+    $firstCat = $res->fetch_assoc();
     if (!$firstCat) json_out(false, null, "ยังไม่มีหมวดหมู่ กรุณาให้แอดมินเพิ่มหมวดก่อน", 400);
     $category_id = intval($firstCat["id"]);
   } else {
-    $catCheck = $pdo->prepare("SELECT id FROM sp_categories WHERE id=? LIMIT 1");
-    $catCheck->execute([$category_id]);
-    if (!$catCheck->fetch()) json_out(false, null, "ไม่พบหมวดหมู่ที่เลือก", 400);
+    $catCheck = $mysqli->prepare("SELECT id FROM sp_categories WHERE id=? LIMIT 1");
+    $catCheck->bind_param('i', $category_id);
+    $catCheck->execute();
+    if (!$catCheck->get_result()->fetch_assoc()) json_out(false, null, "ไม่พบหมวดหมู่ที่เลือก", 400);
   }
 
   $description = trim(strval($body["description"] ?? ""));
@@ -160,24 +174,26 @@ if ($method === "POST") {
   }
 
   try {
-    $stmt = $pdo->prepare("INSERT INTO sp_works(user_id,category_id,title,description,cover_url,work_url,is_visible) VALUES(?,?,?,?,?,?,?)");
-    $stmt->execute([$owner_id, $category_id, $title, $description, $cover_url, $work_url, $is_visible]);
+    $stmt = $mysqli->prepare("INSERT INTO sp_works(user_id,category_id,title,description,cover_url,work_url,is_visible) VALUES(?,?,?,?,?,?,?)");
+    $stmt->bind_param('iissssi', $owner_id, $category_id, $title, $description, $cover_url, $work_url, $is_visible);
+    $stmt->execute();
   } catch (Exception $e) {
     json_out(false, null, "เพิ่มข้อมูลไม่สำเร็จ: " . $e->getMessage(), 400);
   }
 
-  json_out(true, [["id" => $pdo->lastInsertId()]], "สร้างแล้ว", 201);
+  json_out(true, [["id" => $mysqli->insert_id]], "สร้างแล้ว", 201);
 }
 
 if ($method === "PUT") {
-  $u = require_login($pdo);
+  $u = require_login($mysqli);
 
   $id = intval($body["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
-  $stmt->execute([$id]);
-  $row = $stmt->fetch();
+  $stmt = $mysqli->prepare("SELECT user_id FROM sp_works WHERE id=?");
+  $stmt->bind_param('i', $id);
+  $stmt->execute();
+  $row = $stmt->get_result()->fetch_assoc();
   if (!$row) json_out(false, null, "ไม่พบผลงาน", 404);
 
   // Check ownership: user must be owner or admin
@@ -201,9 +217,10 @@ if ($method === "PUT") {
   if (array_key_exists("category_id", $body)) {
     $categoryVal = ($body["category_id"] === null || $body["category_id"] === "") ? null : intval($body["category_id"]);
     if ($categoryVal !== null) {
-      $catCheck = $pdo->prepare("SELECT id FROM sp_categories WHERE id=? LIMIT 1");
-      $catCheck->execute([$categoryVal]);
-      if (!$catCheck->fetch()) json_out(false, null, "ไม่พบหมวดหมู่ที่เลือก", 400);
+      $catCheck = $mysqli->prepare("SELECT id FROM sp_categories WHERE id=? LIMIT 1");
+      $catCheck->bind_param('i', $categoryVal);
+      $catCheck->execute();
+      if (!$catCheck->get_result()->fetch_assoc()) json_out(false, null, "ไม่พบหมวดหมู่ที่เลือก", 400);
     }
     $fields[] = "category_id = ?";
     $params[] = $categoryVal;
@@ -221,21 +238,31 @@ if ($method === "PUT") {
 
   $params[] = $id;
   $sql = "UPDATE sp_works SET " . implode(", ", $fields) . " WHERE id=?";
-  $upd = $pdo->prepare($sql);
-  $upd->execute($params);
+  $upd = $mysqli->prepare($sql);
+  if ($params) {
+    $types = '';
+    foreach ($params as $p) {
+      if (is_int($p)) $types .= 'i';
+      elseif (is_float($p)) $types .= 'd';
+      else $types .= 's';
+    }
+    $upd->bind_param($types, ...$params);
+  }
+  $upd->execute();
 
   json_out(true, null, "อัปเดตแล้ว");
 }
 
 if ($method === "DELETE") {
-  $u = require_login($pdo);
+  $u = require_login($mysqli);
 
   $id = intval($_GET["id"] ?? 0);
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  $stmt = $pdo->prepare("SELECT user_id FROM sp_works WHERE id=?");
-  $stmt->execute([$id]);
-  $row = $stmt->fetch();
+  $stmt = $mysqli->prepare("SELECT user_id FROM sp_works WHERE id=?");
+  $stmt->bind_param('i', $id);
+  $stmt->execute();
+  $row = $stmt->get_result()->fetch_assoc();
   if (!$row) json_out(false, null, "ไม่พบผลงาน", 404);
 
   // Check ownership: user must be owner or admin
@@ -245,8 +272,9 @@ if ($method === "DELETE") {
     json_out(false, null, "ต้องเป็นเจ้าของงานหรือแอดมิน", 403);
   }
 
-  $del = $pdo->prepare("DELETE FROM sp_works WHERE id=?");
-  $del->execute([$id]);
+  $del = $mysqli->prepare("DELETE FROM sp_works WHERE id=?");
+  $del->bind_param('i', $id);
+  $del->execute();
   json_out(true, null, "ลบแล้ว");
 }
 

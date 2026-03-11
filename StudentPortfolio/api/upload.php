@@ -1,11 +1,12 @@
 <?php
-// api/upload.php
+// api/upload.php - API สำหรับ upload รูปภาพโuหลดไปโฟลดหชิเป็นเสื้อผู้ใช้
 declare(strict_types=1);
 session_start();
 require_once __DIR__ . "/database.php";
 require_once __DIR__ . "/helpers.php";
 
-require_login($pdo);
+// ตรวจสอบ login กนอยู่
+require_login($mysqli);
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
   json_out(false, null, "Use POST", 405);
