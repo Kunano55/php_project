@@ -5,6 +5,62 @@ session_start();
 require_once __DIR__ . "/database.php";
 require_once __DIR__ . "/helpers.php";
 
+// resize helper (same as in work-images.php)
+function resize_and_save_image(string $srcPath, string $destPath, string $mime): bool {
+    switch ($mime) {
+        case 'image/jpeg':
+            $srcImg = imagecreatefromjpeg($srcPath);
+            break;
+        case 'image/png':
+            $srcImg = imagecreatefrompng($srcPath);
+            break;
+        case 'image/webp':
+            $srcImg = imagecreatefromwebp($srcPath);
+            break;
+        default:
+            return false;
+    }
+    if ($srcImg === false) {
+        return false;
+    }
+    $origW = imagesx($srcImg);
+    $origH = imagesy($srcImg);
+    $maxDim = 1200;
+    if ($origW > $maxDim || $origH > $maxDim) {
+        $scale = min($maxDim / $origW, $maxDim / $origH);
+        $newW = (int)($origW * $scale);
+        $newH = (int)($origH * $scale);
+    } else {
+        $newW = $origW;
+        $newH = $origH;
+    }
+    $dstImg = imagecreatetruecolor($newW, $newH);
+    if ($mime === 'image/png' || $mime === 'image/webp') {
+        imagealphablending($dstImg, false);
+        imagesavealpha($dstImg, true);
+    }
+    if (!imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newW, $newH, $origW, $origH)) {
+        imagedestroy($srcImg);
+        imagedestroy($dstImg);
+        return false;
+    }
+    $success = false;
+    switch ($mime) {
+        case 'image/jpeg':
+            $success = imagejpeg($dstImg, $destPath, 85);
+            break;
+        case 'image/png':
+            $success = imagepng($dstImg, $destPath, 6);
+            break;
+        case 'image/webp':
+            $success = imagewebp($dstImg, $destPath, 80);
+            break;
+    }
+    imagedestroy($srcImg);
+    imagedestroy($dstImg);
+    return $success;
+}
+
 // ตรวจสอบว่า user login แล้ว
 require_login($mysqli);
 
@@ -62,9 +118,10 @@ if ($upload_dir_real === false) {
 $name = "img_" . date("Ymd_His") . "_" . bin2hex(random_bytes(4)) . "." . $ext;
 $dest = $upload_dir_real . DIRECTORY_SEPARATOR . $name;
 
-// ย้ายไฟล์จากชั่วคราว (tmp) ไปยังโฟลเดอร์ uploads
-if (!move_uploaded_file($tmp, $dest)) {
-  json_out(false, null, "ย้ายไฟล์ไม่สำเร็จ", 500);
+// ปรับขนาดแล้วบันทึกแทนการย้ายตรงๆ
+if (!resize_and_save_image($tmp, $dest, $mime)) {
+  if (file_exists($dest)) @unlink($dest);
+  json_out(false, null, "อัปโหลดหรือปรับขนาดไฟล์ไม่สำเร็จ", 500);
 }
 
 // สร้าง URL ที่ relative (สำหรับเก็บใน database และให้ client ดาวน์โหลด)

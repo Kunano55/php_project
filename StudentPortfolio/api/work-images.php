@@ -6,6 +6,77 @@ session_start();
 require_once __DIR__ . "/database.php";
 require_once __DIR__ . "/helpers.php";
 
+// helper: resize an uploaded image and save to destination path
+// returns true on success, false on failure
+function resize_and_save_image(string $srcPath, string $destPath, string $mime): bool {
+    // load image according to mime type
+    switch ($mime) {
+        case 'image/jpeg':
+            $srcImg = imagecreatefromjpeg($srcPath);
+            break;
+        case 'image/png':
+            $srcImg = imagecreatefrompng($srcPath);
+            break;
+        case 'image/webp':
+            $srcImg = imagecreatefromwebp($srcPath);
+            break;
+        default:
+            return false;
+    }
+    if ($srcImg === false) {
+        return false;
+    }
+
+    $origW = imagesx($srcImg);
+    $origH = imagesy($srcImg);
+    $maxDim = 1200; // max width/height in pixels
+
+    if ($origW > $maxDim || $origH > $maxDim) {
+        $scale = min($maxDim / $origW, $maxDim / $origH);
+        $newW = (int)($origW * $scale);
+        $newH = (int)($origH * $scale);
+    } else {
+        $newW = $origW;
+        $newH = $origH;
+    }
+
+    $dstImg = imagecreatetruecolor($newW, $newH);
+    if ($dstImg === false) {
+        imagedestroy($srcImg);
+        return false;
+    }
+
+    // preserve transparency for png/webp
+    if ($mime === 'image/png' || $mime === 'image/webp') {
+        imagealphablending($dstImg, false);
+        imagesavealpha($dstImg, true);
+    }
+
+    if (!imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newW, $newH, $origW, $origH)) {
+        imagedestroy($srcImg);
+        imagedestroy($dstImg);
+        return false;
+    }
+
+    $success = false;
+    switch ($mime) {
+        case 'image/jpeg':
+            $success = imagejpeg($dstImg, $destPath, 85);
+            break;
+        case 'image/png':
+            // compression level 0 (no compression) - 9
+            $success = imagepng($dstImg, $destPath, 6);
+            break;
+        case 'image/webp':
+            $success = imagewebp($dstImg, $destPath, 80);
+            break;
+    }
+
+    imagedestroy($srcImg);
+    imagedestroy($dstImg);
+    return $success;
+}
+
 $method = $_SERVER["REQUEST_METHOD"];
 
 // Ensure table exists
@@ -105,9 +176,11 @@ if ($method === "POST") {
   $name = "img_" . date("Ymd_His") . "_" . bin2hex(random_bytes(4)) . "." . $ext;
   $dest = $upload_dir_real . DIRECTORY_SEPARATOR . $name;
 
-  // ย้ายไฟล์ไปยังปลายที่ถาวรงไป
-  if (!move_uploaded_file($tmp, $dest)) {
-    json_out(false, null, "ย้ายไฟล์ไม่สำเร็จ", 500);
+  // แปลงขนาดรูปก่อนบันทึกเพื่อประหยัดพื้นที่และ bandwidth
+  if (!resize_and_save_image($tmp, $dest, $mime)) {
+    // หากการปรับขนาดหรือบันทึกล้มเหลว ให้พยายามลบไฟล์ปลายทางที่อาจสร้างขึ้น
+    if (file_exists($dest)) @unlink($dest);
+    json_out(false, null, "อัปโหลดหรือปรับขนาดไฟล์ไม่สำเร็จ", 500);
   }
 
   // เก็บ path สำหรับเก็บใน database (relative)
@@ -134,8 +207,8 @@ if ($method === "DELETE") {
   $id = intval($_GET["id"] ?? 0); // ดึง image ID จาก query string
   if ($id <= 0) json_out(false, null, "ต้องส่ง id", 400);
 
-  // หา record image
-  $stmt = $mysqli->prepare("SELECT work_id FROM sp_work_images WHERE id=?");
+  // หา record image (รวม url เผื่อเราต้องลบไฟล์)
+  $stmt = $mysqli->prepare("SELECT work_id, image_url FROM sp_work_images WHERE id=?");
   $stmt->bind_param('i', $id);
   $stmt->execute();
   $img = $stmt->get_result()->fetch_assoc();
@@ -153,6 +226,13 @@ if ($method === "DELETE") {
   $isAdmin = ($u["role"] ?? "") === "admin";
   if (!$isOwner && !$isAdmin) {
     json_out(false, null, "ต้องเป็นเจ้าของงานหรือแอดมิน", 403);
+  }
+
+  // พยายามลบไฟล์จริงก่อน (ถ้าอยู่ในโฟลเดอร์ uploads)
+  $fileUrl = $img['image_url'];
+  $filePath = realpath(__DIR__ . "/.." . substr($fileUrl, 2)); // ตัด leading ".." แล้วต่อ
+  if ($filePath && strpos($filePath, realpath(__DIR__ . "/../uploads")) === 0) {
+    @unlink($filePath);
   }
 
   // ลบ record จาก database

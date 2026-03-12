@@ -349,7 +349,20 @@ if ($method === "DELETE") {
     json_out(false, null, "ต้องเป็นเจ้าของงานหรือแอดมิน", 403);
   }
 
-  // ลบผลงาน
+  // ลบไฟล์รูปภาพที่เกี่ยวข้องจากโฟลเดอร์ uploads
+  $imgStmt = $mysqli->prepare("SELECT image_url FROM sp_work_images WHERE work_id=?");
+  $imgStmt->bind_param('i', $id);
+  $imgStmt->execute();
+  $resImgs = $imgStmt->get_result();
+  while ($rowImg = $resImgs->fetch_assoc()) {
+    $url = $rowImg['image_url'];
+    $filePath = realpath(__DIR__ . "/.." . substr($url, 2));
+    if ($filePath && strpos($filePath, realpath(__DIR__ . "/../uploads")) === 0) {
+      @unlink($filePath);
+    }
+  }
+
+  // ลบผลงาน (จะ cascade ลบเรคคอร์ดใน sp_work_images ด้วย)
   $del = $mysqli->prepare("DELETE FROM sp_works WHERE id=?");
   $del->bind_param('i', $id);
   $del->execute();
